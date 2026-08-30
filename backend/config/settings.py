@@ -99,6 +99,17 @@ DATABASES = {
 DATABASES["default"].setdefault("CONN_MAX_AGE", env.int("DB_CONN_MAX_AGE", default=60))
 
 
+# Cache. Defaults to per-process local memory; set CACHE_URL (e.g.
+# redis://localhost:6379/1) in production so rate-limit counters and cached
+# stats are shared across worker processes.
+CACHES = {
+    "default": env.cache(
+        "CACHE_URL",
+        default="locmemcache://",
+    ),
+}
+
+
 # Auth
 AUTH_USER_MODEL = "accounts.User"
 
@@ -200,6 +211,13 @@ EMAIL_BACKEND = env(
     default="django.core.mail.backends.console.EmailBackend",
 )
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@brahmamudi.com")
+EMAIL_HOST = env("EMAIL_HOST", default="localhost")
+EMAIL_PORT = env.int("EMAIL_PORT", default=25)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=False)
+EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
+EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=10)
 
 # Base URL of the frontend, used to build links in transactional emails.
 FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", default="http://localhost:3000")
