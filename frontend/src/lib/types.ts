@@ -220,3 +220,39 @@ export interface PayUCheckout {
   txnid: string;
   form: Record<string, string> & { action: string };
 }
+
+export interface PoruthamCheck {
+  key: string;
+  label: string;
+  ok: boolean | null;
+  score: number;
+  max: number;
+  note: string;
+}
+
+export type PoruthamVerdict =
+  | "excellent"
+  | "acceptable"
+  | "poor"
+  | "not_recommended"
+  | "unknown";
+
+export interface Porutham {
+  verdict: PoruthamVerdict;
+  summary: string;
+  passed: number;
+  graded: number;
+  score: number;
+  max_score: number;
+  percent: number | null;
+  nadi_dosha: boolean;
+  vital_failed: string[];
+  checks: PoruthamCheck[];
+}
+
+export interface InterestQuota {
+  limit: number | null;
+  unlimited: boolean;
+  sent_today: number;
+  remaining: number | null;
+}

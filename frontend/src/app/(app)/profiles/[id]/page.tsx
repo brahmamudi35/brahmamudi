@@ -13,6 +13,7 @@ import {
 import { toast } from "sonner";
 
 import { SendInterestDialog } from "@/components/interests/send-interest-dialog";
+import { PoruthamCard } from "@/components/profiles/porutham-card";
 import { Container } from "@/components/site/container";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -303,6 +304,8 @@ export default function ProfileDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          <PoruthamCard profileId={profile.id} />
         </div>
       </div>
     </Container>

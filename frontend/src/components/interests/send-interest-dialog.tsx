@@ -18,7 +18,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { apiFetch } from "@/lib/api";
 import { handleApiError } from "@/lib/form";
-import type { InterestTemplate } from "@/lib/types";
+import type { InterestQuota, InterestTemplate } from "@/lib/types";
 
 export function SendInterestDialog({
   profileId,
@@ -34,6 +34,7 @@ export function SendInterestDialog({
   const [templateId, setTemplateId] = useState<string>("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [quota, setQuota] = useState<InterestQuota | null>(null);
 
   useEffect(() => {
     if (!open || templates.length) return;
@@ -44,6 +45,15 @@ export function SendInterestDialog({
       })
       .catch(() => {});
   }, [open, templates.length]);
+
+  useEffect(() => {
+    if (!open) return;
+    apiFetch<InterestQuota>("/interests/quota/")
+      .then(setQuota)
+      .catch(() => {});
+  }, [open]);
+
+  const outOfQuota = quota != null && quota.remaining != null && quota.remaining <= 0;
 
   async function send() {
     setSending(true);
@@ -99,11 +109,19 @@ export function SendInterestDialog({
           onChange={(e) => setMessage(e.target.value)}
         />
 
+        {quota && !quota.unlimited && (
+          <p className="text-xs text-muted-foreground">
+            {outOfQuota
+              ? "You've reached today's interest limit. Upgrade your membership to send more."
+              : `${quota.remaining} of ${quota.limit} interests left today.`}
+          </p>
+        )}
+
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={sending}>
             Cancel
           </Button>
-          <Button onClick={send} disabled={sending || !templateId}>
+          <Button onClick={send} disabled={sending || !templateId || outOfQuota}>
             {sending && <Spinner />}
             Send interest
           </Button>
