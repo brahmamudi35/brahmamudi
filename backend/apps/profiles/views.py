@@ -1,7 +1,8 @@
 from uuid import uuid4
 
 from django.db.models import Prefetch
-from rest_framework import decorators, permissions, response, status, viewsets
+from rest_framework import decorators, mixins, permissions, response, status, viewsets
+from rest_framework.parsers import FormParser, MultiPartParser
 
 from apps.reference.enums import Gender, ProfileStatus
 
@@ -11,6 +12,7 @@ from .models import Profile, ProfilePhoto, ProfileView, Shortlist
 from .serializers import (
     ProfileDetailSerializer,
     ProfileListSerializer,
+    ProfilePhotoUploadSerializer,
     ProfileVisitorSerializer,
 )
 
@@ -184,3 +186,37 @@ class ProfileViewSet(viewsets.ModelViewSet):
             return self.get_paginated_response(data)
         data = serializer_class(queryset, many=True, context=context).data
         return response.Response(data)
+
+
+class ProfilePhotoViewSet(
+    mixins.ListModelMixin, mixins.CreateModelMixin,
+    mixins.DestroyModelMixin, viewsets.GenericViewSet,
+):
+    """Manage the signed-in member's own photos. New uploads await moderation."""
+
+    serializer_class = ProfilePhotoUploadSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+    pagination_class = None
+
+    def _profile(self):
+        profile = getattr(self.request.user, "profile", None)
+        if profile is None:
+            from rest_framework.exceptions import NotFound
+
+            raise NotFound("Create a profile first.")
+        return profile
+
+    def get_queryset(self):
+        return ProfilePhoto.objects.filter(profile=self._profile())
+
+    def get_serializer_context(self):
+        return {**super().get_serializer_context(), "profile": self._profile()}
+
+    @decorators.action(detail=True, methods=["post"], url_path="make-primary")
+    def make_primary(self, request, pk=None):
+        photo = self.get_object()
+        self.get_queryset().exclude(pk=photo.pk).update(is_primary=False)
+        photo.is_primary = True
+        photo.save(update_fields=["is_primary"])
+        return response.Response(self.get_serializer(photo).data)

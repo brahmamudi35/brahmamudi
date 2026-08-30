@@ -11,6 +11,30 @@ class ProfilePhotoSerializer(serializers.ModelSerializer):
         read_only_fields = ("is_approved", "uploaded_at")
 
 
+class ProfilePhotoUploadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProfilePhoto
+        fields = ("id", "image", "is_primary", "is_approved", "uploaded_at")
+        read_only_fields = ("is_approved", "uploaded_at")
+
+    def validate_image(self, image):
+        if image.size > 8 * 1024 * 1024:
+            raise serializers.ValidationError("Image must be 8 MB or smaller.")
+        return image
+
+    def create(self, validated_data):
+        profile = self.context["profile"]
+        if profile.photos.count() >= 6:
+            raise serializers.ValidationError("A profile can have at most 6 photos.")
+        make_primary = validated_data.pop("is_primary", False) or not profile.photos.exists()
+        photo = ProfilePhoto.objects.create(
+            profile=profile, is_primary=make_primary, is_approved=False, **validated_data
+        )
+        if make_primary:
+            profile.photos.exclude(pk=photo.pk).update(is_primary=False)
+        return photo
+
+
 class PartnerPreferenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = PartnerPreference
