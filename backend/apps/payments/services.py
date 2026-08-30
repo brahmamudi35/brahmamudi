@@ -9,6 +9,7 @@ Reverse (response) hash:
 from __future__ import annotations
 
 import hashlib
+import hmac
 from dataclasses import dataclass
 
 from django.conf import settings
@@ -67,7 +68,7 @@ def verify_response_hash(cfg: PayUConfig, data: dict) -> bool:
     ]
     expected = _sha512("|".join(parts))
     given = (data.get("hash") or "").lower()
-    return hashlib.compare_digest(expected, given)
+    return hmac.compare_digest(expected, given)
 
 
 def _return_urls() -> tuple[str, str]:
