@@ -256,3 +256,38 @@ export interface InterestQuota {
   sent_today: number;
   remaining: number | null;
 }
+
+export interface ModerationSummary {
+  unverified_profiles: number;
+  suspended_profiles: number;
+  pending_photos: number;
+  profiles_created_today: number;
+}
+
+export interface ModerationProfile {
+  id: number;
+  regno: string;
+  full_name: string;
+  email: string;
+  gender: string;
+  age: number | null;
+  subcaste: string;
+  occupation: string;
+  country_living: string;
+  status: string;
+  is_verified: boolean;
+  photo_count: number;
+  pending_photo_count: number;
+  created_at: string;
+}
+
+export interface ModerationPhoto {
+  id: number;
+  image: string;
+  is_primary: boolean;
+  is_approved: boolean;
+  uploaded_at: string;
+  profile_id: number;
+  regno: string;
+  profile_name: string;
+}
