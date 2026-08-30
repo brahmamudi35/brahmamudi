@@ -1,7 +1,8 @@
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from rest_framework import decorators, mixins, permissions, response, viewsets
 
+from . import emails, services
 from .models import Interest, InterestTemplate
 from .serializers import (
     InterestCreateSerializer,
@@ -28,7 +29,9 @@ class InterestViewSet(
 
     def get_queryset(self):
         profile = self.request.user.profile
-        qs = Interest.objects.select_related("sender", "receiver", "template")
+        qs = Interest.objects.select_related(
+            "sender", "sender__user", "receiver", "receiver__user", "template"
+        )
         box = self.request.query_params.get("box")
         if box == "sent":
             return qs.filter(sender=profile)
@@ -37,7 +40,8 @@ class InterestViewSet(
         return qs.filter(models.Q(sender=profile) | models.Q(receiver=profile))
 
     def perform_create(self, serializer):
-        serializer.save(sender=self.request.user.profile)
+        interest = serializer.save(sender=self.request.user.profile)
+        transaction.on_commit(lambda: emails.notify_interest_received(interest))
 
     def _respond(self, request, pk, new_status):
         interest = self.get_object()
@@ -46,7 +50,19 @@ class InterestViewSet(
         interest.status = new_status
         interest.responded_at = timezone.now()
         interest.save(update_fields=["status", "responded_at"])
+        transaction.on_commit(lambda: emails.notify_interest_response(interest))
         return response.Response(InterestSerializer(interest).data)
+
+    @decorators.action(detail=False)
+    def quota(self, request):
+        profile = request.user.profile
+        limit = services.daily_interest_limit(profile)
+        return response.Response({
+            "limit": limit,
+            "unlimited": limit is None,
+            "sent_today": services.interests_sent_today(profile),
+            "remaining": services.remaining_interests_today(profile),
+        })
 
     @decorators.action(detail=True, methods=["post"])
     def accept(self, request, pk=None):
