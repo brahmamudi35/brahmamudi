@@ -179,6 +179,10 @@ EMAIL_BACKEND = env(
 )
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@brahmamudi.com")
 
+# Base URL of the frontend, used to build links in transactional emails.
+FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", default="http://localhost:3000")
+EMAIL_TOKEN_MAX_AGE_DAYS = env.int("EMAIL_TOKEN_MAX_AGE_DAYS", default=7)
+
 
 # Security (enabled when DEBUG is off)
 if not DEBUG:

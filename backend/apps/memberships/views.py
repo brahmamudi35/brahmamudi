@@ -21,6 +21,10 @@ class MembershipPlanViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, vi
             .order_by("-created_at")
             .first()
         )
-        if sub is None:
-            return response.Response({"detail": "No active subscription."}, status=404)
-        return response.Response(SubscriptionSerializer(sub).data)
+        from apps.profiles.services import contact_quota
+
+        data = SubscriptionSerializer(sub).data if sub else None
+        return response.Response({
+            "subscription": data,
+            "contact_quota": contact_quota(profile).as_dict,
+        })

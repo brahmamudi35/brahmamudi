@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
-from .models import PartnerPreference, Profile, ProfilePhoto
+from . import services
+from .models import PartnerPreference, Profile, ProfilePhoto, ProfileView
 
 
 class ProfilePhotoSerializer(serializers.ModelSerializer):
@@ -55,6 +56,8 @@ class ProfileDetailSerializer(serializers.ModelSerializer):
     partner_preference = PartnerPreferenceSerializer(read_only=True)
     nakshatram_name = serializers.CharField(source="nakshatram.name", read_only=True)
     raasi_name = serializers.CharField(source="raasi.name", read_only=True)
+    is_shortlisted = serializers.SerializerMethodField()
+    contact_unlocked = serializers.SerializerMethodField()
 
     class Meta:
         model = Profile
@@ -63,6 +66,21 @@ class ProfileDetailSerializer(serializers.ModelSerializer):
             "regno", "status", "is_verified", "registered_on", "expires_on",
             "created_at", "updated_at",
         )
+
+    def _viewer(self):
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return None
+        return getattr(request.user, "profile", None)
+
+    def get_is_shortlisted(self, instance) -> bool:
+        viewer = self._viewer()
+        if not viewer:
+            return False
+        return instance.shortlisted_by.filter(owner=viewer).exists()
+
+    def get_contact_unlocked(self, instance) -> bool:
+        return self._can_see_contact(instance)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -78,8 +96,21 @@ class ProfileDetailSerializer(serializers.ModelSerializer):
             return False
         if request.user.is_staff:
             return True
-        viewer = getattr(request.user, "profile", None)
+        viewer = self._viewer()
         if viewer and viewer.pk == instance.pk:
             return True
-        # TODO: gate on an active paid subscription + contact-view quota
+        if viewer and services.has_unlocked(viewer, instance):
+            return True
         return False
+
+
+class ProfileVisitorSerializer(serializers.ModelSerializer):
+    profile = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProfileView
+        fields = ("profile", "view_count", "first_viewed_at", "last_viewed_at")
+
+    def get_profile(self, obj):
+        who = obj.viewer if self.context.get("direction") == "visitors" else obj.viewed
+        return ProfileListSerializer(who, context=self.context).data

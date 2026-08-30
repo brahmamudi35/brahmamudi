@@ -2,6 +2,7 @@ from datetime import date
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 from apps.reference import enums
 
@@ -184,7 +185,7 @@ class PartnerPreference(models.Model):
 
 
 class ProfileView(models.Model):
-    """Who viewed whom - powers 'recent visitors' and abuse limits."""
+    """Who viewed whom - one row per (viewer, viewed) pair, powers 'visitors'."""
 
     viewer = models.ForeignKey(
         Profile, on_delete=models.CASCADE, related_name="views_made"
@@ -192,15 +193,46 @@ class ProfileView(models.Model):
     viewed = models.ForeignKey(
         Profile, on_delete=models.CASCADE, related_name="views_received"
     )
-    contact_revealed = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
+    view_count = models.PositiveIntegerField(default=1)
+    first_viewed_at = models.DateTimeField(default=timezone.now)
+    last_viewed_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
         db_table = "profile_view"
-        indexes = [
-            models.Index(fields=["viewed", "-created_at"]),
-            models.Index(fields=["viewer", "-created_at"]),
+        constraints = [
+            models.UniqueConstraint(fields=["viewer", "viewed"], name="uniq_profile_view")
         ]
+        indexes = [
+            models.Index(fields=["viewed", "-last_viewed_at"]),
+            models.Index(fields=["viewer", "-last_viewed_at"]),
+        ]
+
+
+class ContactUnlock(models.Model):
+    """A viewer spent one of their plan's contact-view credits on `viewed`.
+
+    Idempotent per pair: unlocking an already-unlocked profile costs nothing.
+    Attributed to the subscription that paid for it so quota resets on renewal.
+    """
+
+    viewer = models.ForeignKey(
+        Profile, on_delete=models.CASCADE, related_name="contact_unlocks_made"
+    )
+    viewed = models.ForeignKey(
+        Profile, on_delete=models.CASCADE, related_name="contact_unlocks_received"
+    )
+    subscription = models.ForeignKey(
+        "memberships.Subscription", null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="contact_unlocks",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "profile_contact_unlock"
+        constraints = [
+            models.UniqueConstraint(fields=["viewer", "viewed"], name="uniq_contact_unlock")
+        ]
+        indexes = [models.Index(fields=["viewer", "subscription"])]
 
 
 class Shortlist(models.Model):

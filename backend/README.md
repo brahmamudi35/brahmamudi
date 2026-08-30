@@ -48,21 +48,45 @@ Base path `/api/v1/`.
 
 | Method | Path | Notes |
 |--------|------|-------|
-| POST | `auth/register/` | public |
+| POST | `auth/register/` | public; sends verification email |
 | POST | `auth/login/` | returns `{access, refresh, user}` |
 | POST | `auth/refresh/` | |
-| GET/PATCH | `auth/me/` | current user |
+| GET/PATCH | `auth/me/` | current user (patch: phone, full_name) |
+| POST | `auth/password/change/` | authenticated |
+| POST | `auth/password/reset/` | `{email}` — always 200 |
+| POST | `auth/password/reset/confirm/` | `{uid, token, new_password}` |
+| POST | `auth/email/verify/` | `{token}` |
+| POST | `auth/email/verify/resend/` | `{email}` |
 | GET | `profiles/` | browse (opposite gender, filtered) |
-| GET | `profiles/{id}/` | detail; contact fields gated |
-| GET/PUT/PATCH | `profiles/me/` | own profile |
+| GET | `profiles/{id}/` | detail; records a visit; contact fields gated |
+| GET/POST/PUT/PATCH | `profiles/me/` | own profile (POST creates it) |
+| GET | `profiles/me/contact-quota/` | remaining contact views |
+| GET | `profiles/me/visitors/` | who viewed me |
+| GET | `profiles/me/viewed/` | profiles I viewed |
+| GET | `profiles/me/shortlist/` | my shortlist |
+| POST | `profiles/{id}/unlock-contact/` | spends 1 contact credit; 402 if none |
+| POST/DELETE | `profiles/{id}/shortlist/` | add / remove |
 | GET | `membership-plans/` | public |
-| GET | `membership-plans/my_subscription/` | |
+| GET | `membership-plans/my_subscription/` | `{subscription, contact_quota}` |
 | POST | `payments/payu/initiate/` | returns signed PayU form fields |
 | POST | `payments/payu/webhook/` | PayU S2S / redirect callback |
 | GET | `interest-templates/` | public |
 | GET/POST | `interests/?box=sent\|received` | |
 | POST | `interests/{id}/accept\|decline\|withdraw/` | |
 | GET | `reference/nakshatram/`, `reference/raasi/`, `reference/education-levels/` | public |
+
+Transactional emails (verification, password reset) link to
+`FRONTEND_BASE_URL/verify-email?token=…` and
+`FRONTEND_BASE_URL/reset-password?uid=…&token=…`. Dev uses the console email
+backend, so the links print to the runserver output.
+
+### Legacy photos
+
+Once the original image files are recovered from the old server:
+
+```bash
+python manage.py import_legacy_photos --source /path/to/old/uploads
+```
 
 ## Legacy data migration
 

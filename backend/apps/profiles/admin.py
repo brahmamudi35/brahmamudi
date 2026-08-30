@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from .models import PartnerPreference, Profile, ProfilePhoto, Shortlist
+from .models import (
+    ContactUnlock,
+    PartnerPreference,
+    Profile,
+    ProfilePhoto,
+    ProfileView,
+    Shortlist,
+)
 
 
 class ProfilePhotoInline(admin.TabularInline):
@@ -28,3 +35,18 @@ class ProfileAdmin(admin.ModelAdmin):
 class ShortlistAdmin(admin.ModelAdmin):
     list_display = ("owner", "target", "created_at")
     search_fields = ("owner__regno", "target__regno")
+
+
+@admin.register(ContactUnlock)
+class ContactUnlockAdmin(admin.ModelAdmin):
+    list_display = ("viewer", "viewed", "subscription", "created_at")
+    search_fields = ("viewer__regno", "viewed__regno")
+    autocomplete_fields = ("viewer", "viewed", "subscription")
+    date_hierarchy = "created_at"
+
+
+@admin.register(ProfileView)
+class ProfileViewAdmin(admin.ModelAdmin):
+    list_display = ("viewer", "viewed", "view_count", "last_viewed_at")
+    search_fields = ("viewer__regno", "viewed__regno")
+    date_hierarchy = "last_viewed_at"
