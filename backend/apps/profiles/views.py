@@ -14,7 +14,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 
 from apps.reference.enums import Gender, ProfileStatus
 
-from . import services
+from . import porutham, services
 from .filters import ProfileFilter
 from .models import PartnerPreference, Profile, ProfilePhoto, ProfileView, Shortlist
 from .serializers import (
@@ -189,6 +189,23 @@ class ProfileViewSet(viewsets.ModelViewSet):
         data = ProfileDetailSerializer(target, context={"request": request}).data
         data["quota"] = services.contact_quota(viewer).as_dict
         return response.Response(data)
+
+    @decorators.action(detail=True, url_path="porutham")
+    def porutham(self, request, pk=None):
+        viewer = getattr(request.user, "profile", None)
+        target = self.get_object()
+        if viewer is None:
+            return response.Response({"detail": "Create a profile first."}, status=400)
+        if viewer.pk == target.pk:
+            return response.Response({"detail": "That's your own profile."}, status=400)
+        if viewer.gender == target.gender:
+            return response.Response(
+                {"detail": "Porutham is calculated between a bride and a groom."},
+                status=400,
+            )
+        bride = viewer if viewer.gender == Gender.FEMALE else target
+        groom = target if viewer.gender == Gender.FEMALE else viewer
+        return response.Response(porutham.compute(bride, groom))
 
     @decorators.action(detail=True, methods=["post", "delete"])
     def shortlist(self, request, pk=None):
