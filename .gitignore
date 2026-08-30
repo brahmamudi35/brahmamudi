@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Django
+backend/.env
+backend/dev.sqlite3
+backend/media/
+backend/staticfiles/
+*.log
+
+# Legacy import scratch
+backend/tools/legacy_import/_work/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
