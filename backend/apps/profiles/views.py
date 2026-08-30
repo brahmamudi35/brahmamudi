@@ -81,10 +81,12 @@ class ProfileViewSet(viewsets.ModelViewSet):
                 data=request.data, context={"request": request}
             )
             serializer.is_valid(raise_exception=True)
+            # New profiles go live immediately; staff verify / moderate after.
             profile = serializer.save(
                 user=request.user,
                 regno=f"BM-{uuid4().hex[:12]}",
-                status=ProfileStatus.PENDING,
+                status=ProfileStatus.ACTIVE,
+                is_verified=False,
             )
             profile.regno = f"BM{profile.pk:06d}"
             profile.save(update_fields=["regno"])

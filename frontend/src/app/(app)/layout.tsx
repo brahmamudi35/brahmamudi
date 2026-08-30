@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
-import { SiteHeader } from "@/components/site/site-header";
+import { AppHeader } from "@/components/site/app-header";
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/lib/auth";
 
@@ -32,7 +32,7 @@ export default function AppLayout({
 
   return (
     <>
-      <SiteHeader />
+      <AppHeader />
       <main className="flex-1 bg-muted/20">{children}</main>
     </>
   );

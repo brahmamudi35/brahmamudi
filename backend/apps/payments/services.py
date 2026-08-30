@@ -70,9 +70,17 @@ def verify_response_hash(cfg: PayUConfig, data: dict) -> bool:
     return hashlib.compare_digest(expected, given)
 
 
+def _return_urls() -> tuple[str, str]:
+    """Backend endpoint PayU redirects the browser back to (same for s/f)."""
+    base = settings.BACKEND_BASE_URL.rstrip("/")
+    url = f"{base}/api/v1/payments/payu/return/"
+    return url, url
+
+
 def create_checkout(*, profile, plan, first_name: str, email: str, phone: str,
-                    surl: str, furl: str) -> tuple[PaymentTransaction, dict]:
+                    ) -> tuple[PaymentTransaction, dict]:
     cfg = PayUConfig.active()
+    surl, furl = _return_urls()
     txn = PaymentTransaction.objects.create(
         profile=profile,
         plan=plan,
@@ -107,6 +115,36 @@ def create_checkout(*, profile, plan, first_name: str, email: str, phone: str,
         "hash": txn.request_hash,
     }
     return txn, form
+
+
+def activate_membership(txn: PaymentTransaction) -> None:
+    """Grant the paid plan: supersede any active subscription, create a new one,
+    and make the profile live. Safe to call again for the same txn."""
+    from datetime import date
+
+    from apps.memberships.models import Subscription
+
+    if txn.subscriptions.filter(status=Subscription.Status.ACTIVE).exists():
+        return
+
+    start = date.today()
+    expires = txn.plan.expiry_from(start)
+    Subscription.objects.filter(
+        profile=txn.profile, status=Subscription.Status.ACTIVE
+    ).update(status=Subscription.Status.EXPIRED)
+    Subscription.objects.create(
+        profile=txn.profile,
+        plan=txn.plan,
+        status=Subscription.Status.ACTIVE,
+        started_on=start,
+        expires_on=expires,
+        payment=txn,
+    )
+    profile = txn.profile
+    profile.status = "active"
+    if expires:
+        profile.expires_on = expires
+    profile.save(update_fields=["status", "expires_on"])
 
 
 def apply_gateway_response(data: dict) -> PaymentTransaction:

@@ -23,12 +23,17 @@ class ProfilePhotoUploadSerializer(serializers.ModelSerializer):
         return image
 
     def create(self, validated_data):
+        from django.conf import settings
+
         profile = self.context["profile"]
         if profile.photos.count() >= 6:
             raise serializers.ValidationError("A profile can have at most 6 photos.")
         make_primary = validated_data.pop("is_primary", False) or not profile.photos.exists()
         photo = ProfilePhoto.objects.create(
-            profile=profile, is_primary=make_primary, is_approved=False, **validated_data
+            profile=profile,
+            is_primary=make_primary,
+            is_approved=getattr(settings, "AUTO_APPROVE_PHOTOS", True),
+            **validated_data,
         )
         if make_primary:
             profile.photos.exclude(pk=photo.pk).update(is_primary=False)

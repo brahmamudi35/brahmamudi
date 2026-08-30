@@ -10,6 +10,8 @@ export interface User {
   must_reset_password: boolean;
   date_joined: string;
   has_profile: boolean;
+  google_linked: boolean;
+  has_usable_password: boolean;
 }
 
 export interface AuthTokens {
@@ -130,4 +132,91 @@ export interface ApiError {
   status: number;
   detail: string;
   fields?: Record<string, string[]>;
+}
+
+export interface Paginated<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
+export interface ProfileSummary {
+  id: number;
+  regno: string;
+  full_name: string;
+  first_name: string;
+  gender: string;
+  age: number | null;
+  height_cm: number | null;
+  marital_status: string;
+  subcaste: string;
+  gothram: string;
+  education_detail: string;
+  occupation: string;
+  work_location: string;
+  region: string;
+  country_living: string;
+  city_display: string;
+  primary_photo: string | null;
+  is_verified: boolean;
+}
+
+export interface ContactQuota {
+  plan: string;
+  limit: number | null;
+  used: number;
+  remaining: number | null;
+  unlimited: boolean;
+}
+
+export interface InterestTemplate {
+  id: number;
+  text: string;
+}
+
+export interface Interest {
+  id: number;
+  sender: number;
+  receiver: number;
+  sender_detail: ProfileSummary;
+  receiver_detail: ProfileSummary;
+  template: number | null;
+  message: string;
+  status: "sent" | "accepted" | "declined" | "withdrawn";
+  created_at: string;
+  responded_at: string | null;
+}
+
+export interface MembershipPlan {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  duration_months: number;
+  price_inr: string;
+  contact_views: number | null;
+  interests_per_day: number | null;
+  can_view_photos: boolean;
+  can_chat: boolean;
+}
+
+export interface Subscription {
+  id: number;
+  plan: MembershipPlan;
+  status: string;
+  started_on: string | null;
+  expires_on: string | null;
+  is_legacy: boolean;
+  created_at: string;
+}
+
+export interface MySubscription {
+  subscription: Subscription | null;
+  contact_quota: ContactQuota;
+}
+
+export interface PayUCheckout {
+  txnid: string;
+  form: Record<string, string> & { action: string };
 }

@@ -120,7 +120,7 @@ export default async function LandingPage() {
               {
                 icon: ShieldCheck,
                 title: "Verified profiles",
-                body: "Every profile is reviewed before it goes live.",
+                body: "Profiles are reviewed by our team and carry a verified badge.",
               },
               {
                 icon: ScrollText,

@@ -29,6 +29,23 @@ class ProfileAdmin(admin.ModelAdmin):
     readonly_fields = ("legacy_rid", "legacy_raw", "created_at", "updated_at")
     inlines = [ProfilePhotoInline, PartnerPreferenceInline]
     list_select_related = ("user",)
+    actions = ("mark_verified", "mark_unverified", "activate", "suspend")
+
+    @admin.action(description="Mark selected profiles as verified")
+    def mark_verified(self, request, queryset):
+        queryset.update(is_verified=True)
+
+    @admin.action(description="Remove verified badge")
+    def mark_unverified(self, request, queryset):
+        queryset.update(is_verified=False)
+
+    @admin.action(description="Set status: active")
+    def activate(self, request, queryset):
+        queryset.update(status="active")
+
+    @admin.action(description="Set status: suspended")
+    def suspend(self, request, queryset):
+        queryset.update(status="suspended")
 
 
 @admin.register(Shortlist)
@@ -43,6 +60,22 @@ class ContactUnlockAdmin(admin.ModelAdmin):
     search_fields = ("viewer__regno", "viewed__regno")
     autocomplete_fields = ("viewer", "viewed", "subscription")
     date_hierarchy = "created_at"
+
+
+@admin.register(ProfilePhoto)
+class ProfilePhotoAdmin(admin.ModelAdmin):
+    list_display = ("id", "profile", "is_primary", "is_approved", "uploaded_at")
+    list_filter = ("is_approved", "is_primary")
+    search_fields = ("profile__regno", "profile__first_name")
+    actions = ("approve", "unapprove")
+
+    @admin.action(description="Approve selected photos")
+    def approve(self, request, queryset):
+        queryset.update(is_approved=True)
+
+    @admin.action(description="Unapprove selected photos")
+    def unapprove(self, request, queryset):
+        queryset.update(is_approved=False)
 
 
 @admin.register(ProfileView)

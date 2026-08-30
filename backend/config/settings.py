@@ -169,6 +169,10 @@ CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
 # Google Sign-In (Google Identity Services). Empty = feature disabled.
 GOOGLE_OAUTH_CLIENT_ID = env("GOOGLE_OAUTH_CLIENT_ID", default="")
 
+# Member photo uploads: True = live immediately, False = hidden until staff
+# approve them in the admin.
+AUTO_APPROVE_PHOTOS = env.bool("AUTO_APPROVE_PHOTOS", default=True)
+
 
 # PayU payment gateway
 PAYU_ENVIRONMENT = env("PAYU_ENVIRONMENT", default="staging")  # staging | production
@@ -185,6 +189,8 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@brahmamudi.com"
 
 # Base URL of the frontend, used to build links in transactional emails.
 FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", default="http://localhost:3000")
+# Public base URL of this API, used for payment-gateway return URLs.
+BACKEND_BASE_URL = env("BACKEND_BASE_URL", default="http://localhost:8000")
 EMAIL_TOKEN_MAX_AGE_DAYS = env.int("EMAIL_TOKEN_MAX_AGE_DAYS", default=7)
 
 
