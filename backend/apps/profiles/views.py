@@ -1,15 +1,24 @@
 from uuid import uuid4
 
 from django.db.models import Prefetch
-from rest_framework import decorators, mixins, permissions, response, status, viewsets
+from rest_framework import (
+    decorators,
+    mixins,
+    permissions,
+    response,
+    status,
+    views,
+    viewsets,
+)
 from rest_framework.parsers import FormParser, MultiPartParser
 
 from apps.reference.enums import Gender, ProfileStatus
 
 from . import services
 from .filters import ProfileFilter
-from .models import Profile, ProfilePhoto, ProfileView, Shortlist
+from .models import PartnerPreference, Profile, ProfilePhoto, ProfileView, Shortlist
 from .serializers import (
+    PartnerPreferenceSerializer,
     ProfileDetailSerializer,
     ProfileListSerializer,
     ProfilePhotoUploadSerializer,
@@ -99,6 +108,21 @@ class ProfileViewSet(viewsets.ModelViewSet):
             ProfileDetailSerializer(profile, context={"request": request}).data
         )
 
+    @decorators.action(detail=False, methods=["get", "put", "patch"], url_path="me/partner-preference")
+    def partner_preference(self, request):
+        profile = getattr(request.user, "profile", None)
+        if profile is None:
+            return response.Response({"detail": "No profile yet."}, status=404)
+        pref, _ = PartnerPreference.objects.get_or_create(profile=profile)
+        if request.method in ("PUT", "PATCH"):
+            serializer = PartnerPreferenceSerializer(
+                pref, data=request.data, partial=request.method == "PATCH"
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return response.Response(serializer.data)
+        return response.Response(PartnerPreferenceSerializer(pref).data)
+
     @decorators.action(detail=False, url_path="me/contact-quota")
     def contact_quota(self, request):
         profile = getattr(request.user, "profile", None)
@@ -185,6 +209,25 @@ class ProfileViewSet(viewsets.ModelViewSet):
             data = serializer_class(page, many=True, context=context).data
             return self.get_paginated_response(data)
         data = serializer_class(queryset, many=True, context=context).data
+        return response.Response(data)
+
+
+class PublicStatsView(views.APIView):
+    permission_classes = [permissions.AllowAny]
+    authentication_classes: list = []
+
+    def get(self, request):
+        from django.core.cache import cache
+
+        data = cache.get("public_stats")
+        if data is None:
+            live = Profile.objects.filter(status=ProfileStatus.ACTIVE)
+            data = {
+                "active_profiles": live.count(),
+                "brides": live.filter(gender=Gender.FEMALE).count(),
+                "grooms": live.filter(gender=Gender.MALE).count(),
+            }
+            cache.set("public_stats", data, 600)
         return response.Response(data)
 
 
