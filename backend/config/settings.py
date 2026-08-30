@@ -153,6 +153,20 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 20,
+    "DEFAULT_THROTTLE_CLASSES": (
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ),
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": env("THROTTLE_ANON", default="60/min"),
+        "user": env("THROTTLE_USER", default="240/min"),
+        "auth": env("THROTTLE_AUTH", default="20/min"),
+        "password_reset": env("THROTTLE_PASSWORD_RESET", default="5/hour"),
+        "interest_create": env("THROTTLE_INTEREST_CREATE", default="40/hour"),
+        "contact_unlock": env("THROTTLE_CONTACT_UNLOCK", default="60/hour"),
+        "porutham": env("THROTTLE_PORUTHAM", default="120/hour"),
+        "photo_upload": env("THROTTLE_PHOTO_UPLOAD", default="30/hour"),
+    },
 }
 
 SIMPLE_JWT = {

@@ -13,6 +13,7 @@ from rest_framework import (
 from rest_framework.parsers import FormParser, MultiPartParser
 
 from apps.reference.enums import Gender, ProfileStatus
+from config.throttling import ContactUnlockThrottle, PhotoUploadThrottle, PoruthamThrottle
 
 from . import porutham, services
 from .filters import ProfileFilter
@@ -57,6 +58,13 @@ class ProfileViewSet(viewsets.ModelViewSet):
         if self.action in {"create", "destroy"}:
             return [permissions.IsAdminUser()]
         return [permissions.IsAuthenticated()]
+
+    def get_throttles(self):
+        extra = {
+            "unlock_contact": ContactUnlockThrottle,
+            "porutham": PoruthamThrottle,
+        }.get(self.action)
+        return super().get_throttles() + ([extra()] if extra else [])
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -260,6 +268,11 @@ class ProfilePhotoViewSet(
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
     pagination_class = None
+
+    def get_throttles(self):
+        if self.action == "create":
+            return super().get_throttles() + [PhotoUploadThrottle()]
+        return super().get_throttles()
 
     def _profile(self):
         profile = getattr(self.request.user, "profile", None)

@@ -1,7 +1,10 @@
 from django.conf import settings
 from rest_framework import generics, permissions, response, status, views
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
+
+from config.throttling import PasswordResetThrottle
 
 from .google import GoogleAuthError, get_or_create_user_from_google, verify_google_credential
 from .serializers import (
@@ -19,11 +22,15 @@ from .serializers import (
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
 
 
 class LoginView(TokenObtainPairView):
     serializer_class = LoginSerializer
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
 
 
 class GoogleAuthView(views.APIView):
@@ -31,6 +38,8 @@ class GoogleAuthView(views.APIView):
 
     permission_classes = [permissions.AllowAny]
     authentication_classes: list = []
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
 
     def get(self, request):
         return response.Response({"enabled": bool(settings.GOOGLE_OAUTH_CLIENT_ID)})
@@ -80,6 +89,8 @@ class _ActionView(views.APIView):
     """POST a serializer that does its work in .save(); return 200 {detail}."""
 
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
     serializer_class = None
     success_detail = "OK"
 
@@ -91,6 +102,7 @@ class _ActionView(views.APIView):
 
 
 class PasswordResetRequestView(_ActionView):
+    throttle_classes = [PasswordResetThrottle]
     serializer_class = PasswordResetRequestSerializer
     success_detail = "If that email is registered, a reset link is on its way."
 

@@ -55,6 +55,7 @@ class PayUReturnView(views.APIView):
 
     permission_classes = [permissions.AllowAny]
     authentication_classes: list = []
+    throttle_classes: list = []  # PayU-driven; must never be rate-limited
 
     @transaction.atomic
     def post(self, request):
@@ -81,6 +82,7 @@ class PayUWebhookView(views.APIView):
 
     permission_classes = [permissions.AllowAny]
     authentication_classes: list = []
+    throttle_classes: list = []  # PayU-driven; must never be rate-limited
 
     @transaction.atomic
     def post(self, request):

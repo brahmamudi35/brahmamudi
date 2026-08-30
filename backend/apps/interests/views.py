@@ -2,6 +2,8 @@ from django.db import models, transaction
 from django.utils import timezone
 from rest_framework import decorators, mixins, permissions, response, viewsets
 
+from config.throttling import InterestCreateThrottle
+
 from . import emails, services
 from .models import Interest, InterestTemplate
 from .serializers import (
@@ -26,6 +28,11 @@ class InterestViewSet(
 
     def get_serializer_class(self):
         return InterestCreateSerializer if self.action == "create" else InterestSerializer
+
+    def get_throttles(self):
+        if self.action == "create":
+            return super().get_throttles() + [InterestCreateThrottle()]
+        return super().get_throttles()
 
     def get_queryset(self):
         profile = self.request.user.profile
