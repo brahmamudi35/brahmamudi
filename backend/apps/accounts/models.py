@@ -42,6 +42,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     email_verified = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
 
+    # Google Sign-In: the stable Google account id ("sub" claim).
+    google_sub = models.CharField(
+        max_length=40, null=True, blank=True, unique=True, db_index=True
+    )
+
     # Legacy migration bookkeeping (tbl_profiles.rid).
     legacy_rid = models.IntegerField(null=True, blank=True, unique=True, db_index=True)
     must_reset_password = models.BooleanField(

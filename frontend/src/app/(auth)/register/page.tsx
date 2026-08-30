@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { TextField } from "@/components/form/fields";
 import { Button } from "@/components/ui/button";
 import {
@@ -99,6 +100,7 @@ export default function RegisterPage() {
             </Button>
           </FieldGroup>
         </form>
+        <GoogleAuthButton text="signup_with" />
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Already registered?{" "}
           <Link href="/login" className="text-primary hover:underline">

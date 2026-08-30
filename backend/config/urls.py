@@ -6,6 +6,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from apps.accounts.views import (
     EmailVerifyView,
+    GoogleAuthView,
     LoginView,
     MeView,
     PasswordChangeView,
@@ -18,6 +19,7 @@ from apps.accounts.views import (
 api_v1 = [
     path("auth/register/", RegisterView.as_view(), name="register"),
     path("auth/login/", LoginView.as_view(), name="login"),
+    path("auth/google/", GoogleAuthView.as_view(), name="google-auth"),
     path("auth/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
     path("auth/me/", MeView.as_view(), name="me"),
     path("auth/password/change/", PasswordChangeView.as_view(), name="password-change"),

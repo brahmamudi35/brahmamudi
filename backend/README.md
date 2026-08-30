@@ -50,6 +50,7 @@ Base path `/api/v1/`.
 |--------|------|-------|
 | POST | `auth/register/` | public; sends verification email |
 | POST | `auth/login/` | returns `{access, refresh, user}` |
+| GET/POST | `auth/google/` | GET `{enabled}`; POST `{credential}` → `{access, refresh, user, created}` (see [docs/google-signin-setup.md](docs/google-signin-setup.md)) |
 | POST | `auth/refresh/` | |
 | GET/PATCH | `auth/me/` | current user (patch: phone, full_name) |
 | POST | `auth/password/change/` | authenticated |

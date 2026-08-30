@@ -1,6 +1,9 @@
+from django.conf import settings
 from rest_framework import generics, permissions, response, status, views
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from .google import GoogleAuthError, get_or_create_user_from_google, verify_google_credential
 from .serializers import (
     EmailVerifySerializer,
     LoginSerializer,
@@ -21,6 +24,40 @@ class RegisterView(generics.CreateAPIView):
 class LoginView(TokenObtainPairView):
     serializer_class = LoginSerializer
     permission_classes = [permissions.AllowAny]
+
+
+class GoogleAuthView(views.APIView):
+    """Exchange a Google ID token for our JWT pair. Body: {credential}."""
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes: list = []
+
+    def get(self, request):
+        return response.Response({"enabled": bool(settings.GOOGLE_OAUTH_CLIENT_ID)})
+
+    def post(self, request):
+        credential = request.data.get("credential")
+        if not credential:
+            return response.Response({"detail": "Missing Google credential."}, status=400)
+        try:
+            claims = verify_google_credential(credential)
+        except GoogleAuthError as exc:
+            return response.Response({"detail": str(exc)}, status=400)
+
+        user, created = get_or_create_user_from_google(claims)
+        if not user.is_active:
+            return response.Response({"detail": "This account is disabled."}, status=403)
+
+        refresh = RefreshToken.for_user(user)
+        return response.Response(
+            {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "user": UserSerializer(user).data,
+                "created": created,
+            },
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
 
 
 class MeView(generics.RetrieveUpdateAPIView):

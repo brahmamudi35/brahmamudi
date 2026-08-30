@@ -166,6 +166,10 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
 
 
+# Google Sign-In (Google Identity Services). Empty = feature disabled.
+GOOGLE_OAUTH_CLIENT_ID = env("GOOGLE_OAUTH_CLIENT_ID", default="")
+
+
 # PayU payment gateway
 PAYU_ENVIRONMENT = env("PAYU_ENVIRONMENT", default="staging")  # staging | production
 PAYU_STAGING_BASE_URL = "https://test.payu.in"

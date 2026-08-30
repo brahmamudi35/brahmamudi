@@ -11,14 +11,23 @@ User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     has_profile = serializers.SerializerMethodField()
+    google_linked = serializers.SerializerMethodField()
+    has_usable_password = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = (
             "id", "email", "phone", "full_name", "is_staff", "email_verified",
             "must_reset_password", "date_joined", "has_profile",
+            "google_linked", "has_usable_password",
         )
         read_only_fields = fields
+
+    def get_google_linked(self, obj) -> bool:
+        return bool(obj.google_sub)
+
+    def get_has_usable_password(self, obj) -> bool:
+        return obj.has_usable_password()
 
     def get_has_profile(self, obj) -> bool:
         return hasattr(obj, "profile")
