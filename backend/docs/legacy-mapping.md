@@ -13,7 +13,7 @@ PayuReturnDetails 100 · tbl_msg 2,811 · tbl_msgtypes 6 · MembershipPlan 4 · 
 | `username` | `Profile.first_name` | legacy mixes name + qualifications — split on 2+ spaces, keep first token group as name, push remainder to `education_detail` |
 | `surname` | `Profile.surname` | strip trailing status markers ("DIV", "Div- USA") |
 | `emailid` | `User.email` | lowercase; dedupe — on collision suffix `+rid` |
-| `passwd` | `User.password` | **base64-decode**, re-hash via Django, set `User.must_reset_password=True` |
+| `passwd` | *not migrated* | legacy value is base64 of a guessable string (name+regno). Accounts get `set_unusable_password()` + `must_reset_password=True`; members reset via email. `transforms.decode_legacy_password` kept for a one-off audit only. |
 | `gender` | `Profile.gender` | `M`/`F` kept as-is |
 | `dob` | `Profile.date_of_birth` | `0000-00-00` → NULL |
 | `mstatus` | `Profile.marital_status` | UM→unmarried, DV→divorced, WD→widowed, ST→separated |
