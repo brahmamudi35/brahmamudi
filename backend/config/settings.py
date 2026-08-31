@@ -219,6 +219,12 @@ AUTO_APPROVE_PHOTOS = env.bool("AUTO_APPROVE_PHOTOS", default=True)
 # interest, upload a photo or start a payment. Reads are always allowed.
 REQUIRE_EMAIL_VERIFICATION = env.bool("REQUIRE_EMAIL_VERIFICATION", default=True)
 
+# Member photos are re-encoded to JPEG and capped to this longest edge on upload
+# and import (orientation baked in, metadata stripped).
+PROFILE_PHOTO_MAX_SIDE = env.int("PROFILE_PHOTO_MAX_SIDE", default=1600)
+PROFILE_PHOTO_QUALITY = env.int("PROFILE_PHOTO_QUALITY", default=85)
+PROFILE_PHOTO_MAX_BYTES = env.int("PROFILE_PHOTO_MAX_BYTES", default=900_000)
+
 
 # PayU payment gateway
 PAYU_ENVIRONMENT = env("PAYU_ENVIRONMENT", default="staging")  # staging | production

@@ -20,9 +20,14 @@ class ProfilePhotoUploadSerializer(serializers.ModelSerializer):
         read_only_fields = ("is_approved", "uploaded_at")
 
     def validate_image(self, image):
-        if image.size > 8 * 1024 * 1024:
-            raise serializers.ValidationError("Image must be 8 MB or smaller.")
-        return image
+        if image.size > 12 * 1024 * 1024:
+            raise serializers.ValidationError("Image must be 12 MB or smaller.")
+        try:
+            from .images import downscale
+
+            return downscale(image, name=getattr(image, "name", "photo.jpg"))
+        except Exception:  # noqa: BLE001
+            raise serializers.ValidationError("That image could not be processed.")
 
     def create(self, validated_data):
         from django.conf import settings

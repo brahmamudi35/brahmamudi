@@ -31,7 +31,6 @@ from collections import Counter
 from pathlib import Path
 from urllib.parse import unquote
 
-from django.core.files import File
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
@@ -120,6 +119,7 @@ class Command(BaseCommand):
                             continue
                         make_primary = col == "photo1" and not profile.photos.exists()
                         with open(path, "rb") as fh:
+                            content = _prepare(fh, _safe_name(name))
                             if already:
                                 photo = ProfilePhoto.objects.get(pk=already)
                                 photo.image.delete(save=False)
@@ -130,7 +130,7 @@ class Command(BaseCommand):
                                     is_approved=approved,
                                     legacy_filename=name,
                                 )
-                            photo.image.save(_safe_name(name), File(fh), save=True)
+                            photo.image.save(content.name, content, save=True)
                         if make_primary:
                             profile.photos.exclude(pk=photo.pk).update(is_primary=False)
                         attached[(profile.pk, name)] = photo.pk
@@ -198,6 +198,19 @@ def _largest_side(path: Path) -> int:
             return max(im.size)
     except Exception:  # noqa: BLE001 - unreadable image counts as tiny
         return 0
+
+
+def _prepare(fh, name: str):
+    """Downscale / re-encode to JPEG; fall back to the raw bytes on failure."""
+    from django.core.files.base import ContentFile
+
+    from apps.profiles.images import downscale
+
+    try:
+        return downscale(fh, name=name)
+    except Exception:  # noqa: BLE001
+        fh.seek(0)
+        return ContentFile(fh.read(), name=name)
 
 
 def _slug(name: str) -> str:
