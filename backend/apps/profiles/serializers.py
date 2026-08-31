@@ -1,9 +1,57 @@
+from pathlib import Path
+
+from django.conf import settings
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from . import services
-from .models import PartnerPreference, Profile, ProfilePhoto, ProfileView
+from .models import HoroscopeDocument, PartnerPreference, Profile, ProfilePhoto, ProfileView
+
+_HOROSCOPE_IMG = {".jpg", ".jpeg", ".png", ".webp"}
+_HOROSCOPE_MAX = getattr(settings, "HOROSCOPE_MAX_MB", 15) * 1024 * 1024
+
+
+class HoroscopeUploadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HoroscopeDocument
+        fields = ("id", "file", "original_name", "is_pdf", "is_approved", "uploaded_at")
+        read_only_fields = ("original_name", "is_pdf", "is_approved", "uploaded_at")
+
+    def validate_file(self, f):
+        self._original_name = getattr(f, "name", "")[:255]
+        ext = Path(self._original_name).suffix.lower()
+        if f.size > _HOROSCOPE_MAX:
+            raise serializers.ValidationError(
+                f"File must be {_HOROSCOPE_MAX // (1024 * 1024)} MB or smaller."
+            )
+        if ext == ".pdf":
+            head = f.read(5)
+            f.seek(0)
+            if not head.startswith(b"%PDF-"):
+                raise serializers.ValidationError("That doesn't look like a PDF.")
+            self._is_pdf = True
+            return f
+        if ext in _HOROSCOPE_IMG:
+            from .images import downscale
+
+            self._is_pdf = False
+            try:
+                return downscale(f, name=self._original_name or "horoscope.jpg")
+            except Exception:  # noqa: BLE001
+                raise serializers.ValidationError("That image could not be processed.")
+        raise serializers.ValidationError("Upload a PDF or an image (JPG / PNG).")
+
+    def create(self, validated_data):
+        profile = self.context["profile"]
+        HoroscopeDocument.objects.filter(profile=profile).delete()
+        return HoroscopeDocument.objects.create(
+            profile=profile,
+            file=validated_data["file"],
+            original_name=getattr(self, "_original_name", ""),
+            is_pdf=getattr(self, "_is_pdf", False),
+            is_approved=getattr(settings, "AUTO_APPROVE_PHOTOS", True),
+        )
 
 
 class ProfilePhotoSerializer(serializers.ModelSerializer):
@@ -95,6 +143,7 @@ class ProfileDetailSerializer(serializers.ModelSerializer):
     raasi_name = serializers.CharField(source="raasi.name", read_only=True)
     is_shortlisted = serializers.SerializerMethodField()
     contact_unlocked = serializers.SerializerMethodField()
+    horoscope = serializers.SerializerMethodField()
 
     class Meta:
         model = Profile
@@ -118,6 +167,25 @@ class ProfileDetailSerializer(serializers.ModelSerializer):
 
     def get_contact_unlocked(self, instance) -> bool:
         return self._can_see_contact(instance)
+
+    @extend_schema_field(OpenApiTypes.OBJECT)
+    def get_horoscope(self, instance):
+        doc = getattr(instance, "horoscope", None)
+        viewer = self._viewer()
+        is_owner = viewer and viewer.pk == instance.pk
+        if doc is None or not (doc.is_approved or is_owner):
+            return {
+                "status": ("pending" if doc and is_owner else "none"),
+                "locked": False, "url": None, "is_pdf": False,
+            }
+        if not (is_owner or self._can_see_contact(instance)):
+            return {"status": "available", "locked": True, "url": None, "is_pdf": doc.is_pdf}
+        request = self.context.get("request")
+        url = request.build_absolute_uri(doc.file.url) if request else doc.file.url
+        return {
+            "status": "approved" if doc.is_approved else "pending",
+            "locked": False, "url": url, "is_pdf": doc.is_pdf,
+        }
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

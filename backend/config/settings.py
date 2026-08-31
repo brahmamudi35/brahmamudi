@@ -227,6 +227,9 @@ PROFILE_PHOTO_MAX_SIDE = env.int("PROFILE_PHOTO_MAX_SIDE", default=1600)
 PROFILE_PHOTO_QUALITY = env.int("PROFILE_PHOTO_QUALITY", default=85)
 PROFILE_PHOTO_MAX_BYTES = env.int("PROFILE_PHOTO_MAX_BYTES", default=900_000)
 
+# Horoscope / jataka document upload (PDF or image).
+HOROSCOPE_MAX_MB = env.int("HOROSCOPE_MAX_MB", default=15)
+
 
 # PayU payment gateway
 PAYU_ENVIRONMENT = env("PAYU_ENVIRONMENT", default="staging")  # staging | production

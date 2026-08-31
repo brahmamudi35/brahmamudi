@@ -22,6 +22,7 @@ from . import matching, porutham, services
 from .filters import ProfileFilter
 from .models import PartnerPreference, Profile, ProfilePhoto, ProfileView, Shortlist
 from .serializers import (
+    HoroscopeUploadSerializer,
     PartnerPreferenceSerializer,
     ProfileDetailSerializer,
     ProfileListSerializer,
@@ -58,7 +59,9 @@ class ProfileViewSet(viewsets.ModelViewSet):
         return ProfileDetailSerializer
 
     # actions that change data on the member's behalf need a verified email
-    _VERIFIED_ACTIONS = {"me", "partner_preference", "unlock_contact", "shortlist"}
+    _VERIFIED_ACTIONS = {
+        "me", "partner_preference", "unlock_contact", "shortlist", "horoscope",
+    }
 
     def get_permissions(self):
         if self.action in {"create", "destroy"}:
@@ -126,6 +129,34 @@ class ProfileViewSet(viewsets.ModelViewSet):
         return response.Response(
             ProfileDetailSerializer(profile, context={"request": request}).data
         )
+
+    @decorators.action(
+        detail=False, methods=["get", "post", "delete"], url_path="me/horoscope",
+        parser_classes=[MultiPartParser, FormParser],
+    )
+    def horoscope(self, request):
+        profile = getattr(request.user, "profile", None)
+        if profile is None:
+            return response.Response({"detail": "No profile yet."}, status=404)
+        doc = getattr(profile, "horoscope", None)
+
+        if request.method == "DELETE":
+            if doc:
+                doc.file.delete(save=False)
+                doc.delete()
+            return response.Response(status=status.HTTP_204_NO_CONTENT)
+
+        if request.method == "POST":
+            ser = HoroscopeUploadSerializer(
+                data=request.data, context={"profile": profile}
+            )
+            ser.is_valid(raise_exception=True)
+            ser.save()
+            return response.Response(ser.data, status=status.HTTP_201_CREATED)
+
+        if doc is None:
+            return response.Response({"detail": "No horoscope uploaded."}, status=404)
+        return response.Response(HoroscopeUploadSerializer(doc).data)
 
     @decorators.action(detail=False, methods=["get", "put", "patch"], url_path="me/partner-preference")
     def partner_preference(self, request):

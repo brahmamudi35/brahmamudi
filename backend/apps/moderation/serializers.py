@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.profiles.models import Profile, ProfilePhoto
+from apps.profiles.models import HoroscopeDocument, Profile, ProfilePhoto
 
 
 class ModerationProfileSerializer(serializers.ModelSerializer):
@@ -40,5 +40,19 @@ class ModerationPhotoSerializer(serializers.ModelSerializer):
         model = ProfilePhoto
         fields = (
             "id", "image", "is_primary", "is_approved", "uploaded_at",
+            "profile_id", "regno", "profile_name",
+        )
+
+
+class ModerationHoroscopeSerializer(serializers.ModelSerializer):
+    file = serializers.FileField(read_only=True)
+    profile_id = serializers.IntegerField(source="profile.id", read_only=True)
+    regno = serializers.CharField(source="profile.regno", read_only=True)
+    profile_name = serializers.CharField(source="profile.full_name", read_only=True)
+
+    class Meta:
+        model = HoroscopeDocument
+        fields = (
+            "id", "file", "original_name", "is_pdf", "is_approved", "uploaded_at",
             "profile_id", "regno", "profile_name",
         )

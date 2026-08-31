@@ -12,6 +12,7 @@ from .admin_filters import (
 )
 from .models import (
     ContactUnlock,
+    HoroscopeDocument,
     PartnerPreference,
     Profile,
     ProfilePhoto,
@@ -23,6 +24,28 @@ from .models import (
 class ProfilePhotoInline(admin.TabularInline):
     model = ProfilePhoto
     extra = 0
+
+
+class HoroscopeInline(admin.StackedInline):
+    model = HoroscopeDocument
+    extra = 0
+
+
+@admin.register(HoroscopeDocument)
+class HoroscopeDocumentAdmin(admin.ModelAdmin):
+    list_display = ("id", "profile", "is_pdf", "is_approved", "uploaded_at")
+    list_filter = ("is_approved", "is_pdf")
+    search_fields = ("profile__regno", "profile__first_name", "original_name")
+    autocomplete_fields = ("profile",)
+    actions = ("approve", "unapprove")
+
+    @admin.action(description="Approve selected")
+    def approve(self, request, queryset):
+        queryset.update(is_approved=True)
+
+    @admin.action(description="Unapprove selected")
+    def unapprove(self, request, queryset):
+        queryset.update(is_approved=False)
 
 
 class PartnerPreferenceInline(admin.StackedInline):
@@ -49,7 +72,7 @@ class ProfileAdmin(admin.ModelAdmin):
     )
     autocomplete_fields = ("user", "nakshatram", "raasi", "education")
     readonly_fields = ("legacy_rid", "legacy_raw", "created_at", "updated_at")
-    inlines = [ProfilePhotoInline, PartnerPreferenceInline]
+    inlines = [ProfilePhotoInline, HoroscopeInline, PartnerPreferenceInline]
     list_select_related = ("user", "nakshatram", "raasi", "education")
     date_hierarchy = "created_at"
     list_per_page = 50

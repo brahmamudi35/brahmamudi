@@ -160,6 +160,26 @@ class ProfilePhoto(models.Model):
         return f"photo<{self.profile_id}>"
 
 
+class HoroscopeDocument(models.Model):
+    """A member's jataka / kundali as a PDF or image. Visible only to the owner
+    and members who have unlocked the profile's contact details."""
+
+    profile = models.OneToOneField(
+        Profile, on_delete=models.CASCADE, related_name="horoscope"
+    )
+    file = models.FileField(upload_to="horoscopes/%Y/%m/")
+    original_name = models.CharField(max_length=255, blank=True)
+    is_pdf = models.BooleanField(default=False)
+    is_approved = models.BooleanField(default=False)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "profile_horoscope"
+
+    def __str__(self):
+        return f"horoscope<{self.profile_id}>"
+
+
 class PartnerPreference(models.Model):
     profile = models.OneToOneField(
         Profile, on_delete=models.CASCADE, related_name="partner_preference"

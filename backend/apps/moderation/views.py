@@ -12,11 +12,15 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import decorators, filters, mixins, permissions, response, viewsets
 
-from apps.profiles.models import Profile, ProfilePhoto
+from apps.profiles.models import HoroscopeDocument, Profile, ProfilePhoto
 from apps.reference.enums import ProfileStatus
 
 from .filters import ModerationProfileFilter
-from .serializers import ModerationPhotoSerializer, ModerationProfileSerializer
+from .serializers import (
+    ModerationHoroscopeSerializer,
+    ModerationPhotoSerializer,
+    ModerationProfileSerializer,
+)
 
 _PHOTO_COUNTS = {
     "photo_count": Count("photos", distinct=True),
@@ -127,6 +131,41 @@ class ModerationPhotoViewSet(
                url="/profile/photos")
 
 
+class ModerationHoroscopeViewSet(
+    mixins.ListModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet
+):
+    permission_classes = [permissions.IsAdminUser]
+    serializer_class = ModerationHoroscopeSerializer
+
+    def get_queryset(self):
+        qs = HoroscopeDocument.objects.select_related("profile").order_by("uploaded_at")
+        if self.action == "list" and \
+                self.request.query_params.get("filter", "pending") == "pending":
+            return qs.filter(is_approved=False)
+        return qs
+
+    @decorators.action(detail=True, methods=["post"])
+    def approve(self, request, pk=None):
+        doc = self.get_object()
+        doc.is_approved = True
+        doc.save(update_fields=["is_approved"])
+        from apps.notifications.services import notify
+
+        notify(doc.profile, "photo_approved",
+               text="Your horoscope was approved", url="/profile/photos")
+        return response.Response(self.get_serializer(doc).data)
+
+    def perform_destroy(self, instance):
+        profile = instance.profile
+        instance.file.delete(save=False)
+        instance.delete()
+        from apps.notifications.services import notify
+
+        notify(profile, "photo_rejected",
+               text="The horoscope you uploaded was removed by our team",
+               url="/profile/photos")
+
+
 @extend_schema(responses={200: OpenApiTypes.OBJECT})
 class ModerationSummaryView(viewsets.ViewSet):
     permission_classes = [permissions.IsAdminUser]
@@ -140,6 +179,9 @@ class ModerationSummaryView(viewsets.ViewSet):
                 status=ProfileStatus.SUSPENDED
             ).count(),
             "pending_photos": ProfilePhoto.objects.filter(is_approved=False).count(),
+            "pending_horoscopes": HoroscopeDocument.objects.filter(
+                is_approved=False
+            ).count(),
             "profiles_created_today": Profile.objects.filter(
                 created_at__gte=today
             ).count(),
