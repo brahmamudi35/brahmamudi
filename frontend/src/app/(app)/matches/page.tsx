@@ -15,17 +15,14 @@ import type { SuggestedProfile } from "@/lib/types";
 export default function MatchesPage() {
   const { user } = useAuth();
   const [rows, setRows] = useState<SuggestedProfile[] | null>(null);
-  const [noProfile, setNoProfile] = useState(false);
+  const noProfile = !!user && !user.has_profile;
 
   useEffect(() => {
-    if (user && !user.has_profile) {
-      setNoProfile(true);
-      return;
-    }
+    if (noProfile) return;
     apiFetch<SuggestedProfile[]>("/profiles/suggestions/?limit=30")
       .then(setRows)
       .catch(() => setRows([]));
-  }, [user]);
+  }, [noProfile]);
 
   return (
     <Container className="py-6">

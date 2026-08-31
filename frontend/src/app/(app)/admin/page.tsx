@@ -287,7 +287,6 @@ function PhotosTab({ onChange }: { onChange: () => void }) {
   const [busy, setBusy] = useState<number | null>(null);
 
   const load = useCallback(() => {
-    setRows(null);
     apiFetch<Paginated<ModerationPhoto>>("/moderation/photos/?filter=pending")
       .then((d) => setRows(d.results))
       .catch(handleApiError);
@@ -385,7 +384,6 @@ function HoroscopesTab({ onChange }: { onChange: () => void }) {
   const [busy, setBusy] = useState<number | null>(null);
 
   const load = useCallback(() => {
-    setRows(null);
     apiFetch<Paginated<ModHoroscope>>("/moderation/horoscopes/?filter=pending")
       .then((d) => setRows(d.results))
       .catch(handleApiError);

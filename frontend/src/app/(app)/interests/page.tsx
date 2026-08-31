@@ -25,18 +25,17 @@ const STATUS_STYLE: Record<Interest["status"], string> = {
 
 export default function InterestsPage() {
   const [box, setBox] = useState<"received" | "sent">("received");
-  const [items, setItems] = useState<Interest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<Interest[] | null>(null);
 
   const load = useCallback(() => {
-    setLoading(true);
     apiFetch<Paginated<Interest>>(`/interests/?box=${box}`)
       .then((d) => setItems(d.results))
-      .catch(() => setItems([]))
-      .finally(() => setLoading(false));
+      .catch(() => setItems([]));
   }, [box]);
 
   useEffect(load, [load]);
+
+  const loading = items === null;
 
   async function respond(id: number, action: "accept" | "decline") {
     try {
@@ -78,7 +77,7 @@ export default function InterestsPage() {
         </TabsList>
 
         <TabsContent value={box} className="mt-4 space-y-3">
-          {loading ? (
+          {loading || !items ? (
             Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="h-24 w-full" />
             ))

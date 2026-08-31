@@ -46,7 +46,6 @@ jobs:
         run: npx tsc --noEmit
       - name: Lint
         run: npm run lint
-        continue-on-error: true  # not yet lint-clean; tracked separately
       - name: Build
         run: npm run build
         env:

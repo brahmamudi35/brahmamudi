@@ -51,7 +51,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    refreshUser().finally(() => setLoading(false));
+    let active = true;
+    Promise.resolve().then(async () => {
+      await refreshUser();
+      if (active) setLoading(false);
+    });
+    return () => {
+      active = false;
+    };
   }, [refreshUser]);
 
   const login = useCallback(async (email: string, password: string) => {

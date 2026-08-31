@@ -104,7 +104,9 @@ export default function OnboardingPage() {
   useEffect(() => {
     const raw = new URLSearchParams(window.location.search).get("step");
     const n = raw ? Number(raw) : NaN;
-    if (Number.isInteger(n) && n >= 0 && n < STEPS.length) setStep(n);
+    if (Number.isInteger(n) && n >= 0 && n < STEPS.length) {
+      queueMicrotask(() => setStep(n));
+    }
   }, []);
   const [profileSaved, setProfileSaved] = useState(!!user?.has_profile);
   const [hydrated, setHydrated] = useState(false);

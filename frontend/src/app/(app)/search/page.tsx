@@ -85,9 +85,9 @@ function SearchInner() {
 
   // Refetch (debounced) whenever filters change.
   useEffect(() => {
-    setLoading(true);
     clearTimeout(debounce.current);
     debounce.current = setTimeout(async () => {
+      setLoading(true);
       try {
         const data = await fetchPage(0);
         setResults(data.results);

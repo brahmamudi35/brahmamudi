@@ -23,18 +23,15 @@ function VerifyEmail() {
   const params = useSearchParams();
   const token = params.get("token");
   const { user, refreshUser } = useAuth();
-  const [state, setState] = useState<State>("verifying");
-  const [message, setMessage] = useState("");
+  const [state, setState] = useState<State>(token ? "verifying" : "error");
+  const [message, setMessage] = useState(
+    token ? "" : "This link is missing its verification token.",
+  );
   const ran = useRef(false);
 
   useEffect(() => {
-    if (ran.current) return;
+    if (!token || ran.current) return;
     ran.current = true;
-    if (!token) {
-      setState("error");
-      setMessage("This link is missing its verification token.");
-      return;
-    }
     apiFetch<{ detail: string }>("/auth/email/verify/", {
       method: "POST",
       auth: false,

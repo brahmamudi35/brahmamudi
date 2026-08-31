@@ -35,22 +35,21 @@ import type { Completeness, Profile, SuggestedProfile } from "@/lib/types";
 export default function DashboardPage() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loaded, setLoaded] = useState(false);
   const [completeness, setCompleteness] = useState<Completeness | null>(null);
 
   useEffect(() => {
-    if (!user?.has_profile) {
-      setLoading(false);
-      return;
-    }
+    if (!user?.has_profile) return;
     apiFetch<Profile>("/profiles/me/")
       .then(setProfile)
       .catch(() => setProfile(null))
-      .finally(() => setLoading(false));
+      .finally(() => setLoaded(true));
     apiFetch<Completeness>("/profiles/me/completeness/")
       .then(setCompleteness)
       .catch(() => {});
   }, [user?.has_profile]);
+
+  const loading = !!user?.has_profile && !loaded;
 
   // A staff account with no member profile is here to administer, not to
   // build a bio-data — show the admin shortcut instead of the member prompts.

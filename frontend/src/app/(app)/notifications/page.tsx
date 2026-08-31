@@ -21,8 +21,6 @@ export default function NotificationsPage() {
   const [more, setMore] = useState(false);
 
   const load = useCallback((offset = 0) => {
-    if (offset === 0) setRows(null);
-    else setMore(true);
     apiFetch<Paginated<Notification>>(`/notifications/?limit=30&offset=${offset}`)
       .then((d) => {
         setCount(d.count);
@@ -33,6 +31,11 @@ export default function NotificationsPage() {
   }, []);
 
   useEffect(() => load(0), [load]);
+
+  function loadMore() {
+    setMore(true);
+    load(rows?.length ?? 0);
+  }
 
   async function markAll() {
     await apiFetch("/notifications/read/", { method: "POST", body: {} }).catch(() => {});
@@ -105,7 +108,7 @@ export default function NotificationsPage() {
           variant="outline"
           className="mt-4 w-full"
           disabled={more}
-          onClick={() => load(rows.length)}
+          onClick={loadMore}
         >
           {more ? <Spinner /> : "Load more"}
         </Button>

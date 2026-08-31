@@ -80,7 +80,6 @@ export function useMatchCount(queryString: string): number | null {
   const [count, setCount] = useState<number | null>(null);
   useEffect(() => {
     let alive = true;
-    setCount(null);
     const p = new URLSearchParams(queryString);
     p.set("limit", "1");
     p.set("offset", "0");
@@ -104,8 +103,7 @@ export function useMemberList(queryString: string) {
     (offset: number) => {
       const p = new URLSearchParams(queryString);
       p.set("offset", String(offset));
-      if (offset === 0) setRows(null);
-      else setLoadingMore(true);
+      if (offset === 0) queueMicrotask(() => setRows(null));
       apiFetch<Paginated<ModerationProfile>>(`/moderation/profiles/?${p}`)
         .then((d) => {
           setCount(d.count);
@@ -159,6 +157,9 @@ export function useMemberList(queryString: string) {
     busy,
     loadingMore,
     act,
-    loadMore: () => fetchPage(rows?.length ?? 0),
+    loadMore: () => {
+      setLoadingMore(true);
+      fetchPage(rows?.length ?? 0);
+    },
   };
 }
