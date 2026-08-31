@@ -3,11 +3,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { BadgeCheck, Ban, Check, RotateCcw, Search, Trash2, X } from "lucide-react";
-import { toast } from "sonner";
+import { Check, Search, Trash2 } from "lucide-react";
 
+import { GuidedSearch } from "@/components/admin/guided-search";
+import { MemberRow } from "@/components/admin/member-row";
+import {
+  BLANK_FILTERS,
+  buildMemberQuery,
+  type MemberFilters,
+  useMemberList,
+} from "@/components/admin/member-search";
 import { Container } from "@/components/site/container";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
@@ -15,25 +21,23 @@ import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { handleApiError } from "@/lib/form";
 import { useReferenceData } from "@/lib/reference";
-import type {
-  ModerationPhoto,
-  ModerationProfile,
-  ModerationSummary,
-  Paginated,
-} from "@/lib/types";
+import type { ModerationPhoto, ModerationSummary, Paginated } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Tab = "profiles" | "photos";
-type Preset = "unverified" | "suspended" | "verified" | "all";
+type Tab = "guided" | "directory" | "photos";
+const TABS: { id: Tab; label: string }[] = [
+  { id: "guided", label: "Guided search" },
+  { id: "directory", label: "Directory" },
+  { id: "photos", label: "Photos" },
+];
 
-const PAGE = 25;
 const fieldCls =
   "h-8 rounded-md border bg-background px-2 text-sm outline-none focus-visible:border-ring";
 
 export default function AdminModerationPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("profiles");
+  const [tab, setTab] = useState<Tab>("guided");
   const [summary, setSummary] = useState<ModerationSummary | null>(null);
 
   useEffect(() => {
@@ -48,12 +52,11 @@ export default function AdminModerationPage() {
 
   useEffect(loadSummary, [loadSummary]);
 
-  if (loading || !user) return null;
-  if (!user.is_staff) return null;
+  if (loading || !user || !user.is_staff) return null;
 
   return (
     <Container className="py-6">
-      <h1 className="font-heading text-2xl font-semibold">Moderation</h1>
+      <h1 className="font-heading text-2xl font-semibold">Admin</h1>
 
       {summary && (
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -65,28 +68,26 @@ export default function AdminModerationPage() {
       )}
 
       <div className="mt-6 flex gap-2 border-b">
-        {(["profiles", "photos"] as Tab[]).map((t) => (
+        {TABS.map((t) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={t.id}
+            onClick={() => setTab(t.id)}
             className={cn(
-              "-mb-px border-b-2 px-3 py-2 text-sm font-medium capitalize",
-              tab === t
+              "-mb-px border-b-2 px-3 py-2 text-sm font-medium",
+              tab === t.id
                 ? "border-primary text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >
-            {t}
+            {t.label}
           </button>
         ))}
       </div>
 
-      <div className="mt-4">
-        {tab === "profiles" ? (
-          <ProfilesTab onChange={loadSummary} />
-        ) : (
-          <PhotosTab onChange={loadSummary} />
-        )}
+      <div className="mt-6">
+        {tab === "guided" && <GuidedSearch onChange={loadSummary} />}
+        {tab === "directory" && <DirectoryTab onChange={loadSummary} />}
+        {tab === "photos" && <PhotosTab onChange={loadSummary} />}
       </div>
     </Container>
   );
@@ -103,93 +104,26 @@ function Stat({ label, value }: { label: string; value: number }) {
   );
 }
 
-const BLANK = {
-  preset: "unverified" as Preset,
-  search: "",
-  gender: "",
-  subcaste: "",
-  region: "",
-  status: "",
-  is_verified: "",
-  plan: "",
-  has_photo: "",
-  age_min: "",
-  age_max: "",
-};
-type Filters = typeof BLANK;
-
-function ProfilesTab({ onChange }: { onChange: () => void }) {
+function DirectoryTab({ onChange }: { onChange: () => void }) {
   const { data: ref } = useReferenceData();
-  const [f, setF] = useState<Filters>(BLANK);
+  const [f, setF] = useState<MemberFilters>(BLANK_FILTERS);
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [rows, setRows] = useState<ModerationProfile[] | null>(null);
-  const [count, setCount] = useState(0);
-  const [busy, setBusy] = useState<number | null>(null);
-  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(f.search.trim()), 350);
     return () => clearTimeout(t);
   }, [f.search]);
 
-  const query = useMemo(() => {
-    const p = new URLSearchParams({ filter: f.preset, limit: String(PAGE) });
-    if (debouncedSearch) p.set("search", debouncedSearch);
-    for (const k of ["gender", "subcaste", "region", "status", "is_verified",
-      "plan", "has_photo", "age_min", "age_max"] as const) {
-      if (f[k]) p.set(k, f[k]);
-    }
-    return p;
-  }, [f, debouncedSearch]);
-
-  const load = useCallback(
-    (offset = 0) => {
-      const p = new URLSearchParams(query);
-      p.set("offset", String(offset));
-      if (offset === 0) setRows(null);
-      else setLoadingMore(true);
-      apiFetch<Paginated<ModerationProfile>>(`/moderation/profiles/?${p}`)
-        .then((d) => {
-          setCount(d.count);
-          setRows((prev) => (offset === 0 ? d.results : [...(prev ?? []), ...d.results]));
-        })
-        .catch(handleApiError)
-        .finally(() => setLoadingMore(false));
-    },
-    [query],
+  const query = useMemo(
+    () => buildMemberQuery({ ...f, search: debouncedSearch }, { limit: 25 }),
+    [f, debouncedSearch],
   );
+  const { rows, count, busy, loadingMore, act, loadMore } = useMemberList(query);
 
-  useEffect(() => load(0), [load]);
-
-  async function act(id: number, action: string) {
-    setBusy(id);
-    try {
-      await apiFetch(`/moderation/profiles/${id}/${action}/`, { method: "POST" });
-      setRows((prev) =>
-        prev?.map((r) =>
-          r.id !== id
-            ? r
-            : {
-                ...r,
-                is_verified: action === "verify" ? true : action === "unverify" ? false : r.is_verified,
-                status:
-                  action === "suspend" ? "suspended" : action === "reinstate" ? "active" : r.status,
-              },
-        ) ?? null,
-      );
-      onChange();
-    } catch (err) {
-      handleApiError(err);
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  const set = (k: keyof Filters) => (e: { target: { value: string } }) =>
+  const set = (k: keyof MemberFilters) => (e: { target: { value: string } }) =>
     setF((s) => ({ ...s, [k]: e.target.value }));
-
   const enums = ref?.enums;
-  const dirty = JSON.stringify(f) !== JSON.stringify(BLANK);
+  const dirty = JSON.stringify(f) !== JSON.stringify(BLANK_FILTERS);
 
   return (
     <>
@@ -213,6 +147,7 @@ function ProfilesTab({ onChange }: { onChange: () => void }) {
           <Select v={f.gender} on={set("gender")} label="Any gender" opts={enums?.gender} />
           <Select v={f.subcaste} on={set("subcaste")} label="Any sub-caste" opts={enums?.subcaste} />
           <Select v={f.region} on={set("region")} label="Any region" opts={enums?.region} />
+          <Select v={f.marital_status} on={set("marital_status")} label="Any marital status" opts={enums?.marital_status} />
           <Select v={f.status} on={set("status")} label="Any status" opts={enums?.profile_status} />
           <select value={f.is_verified} onChange={set("is_verified")} className={fieldCls}>
             <option value="">Verified: any</option>
@@ -250,7 +185,10 @@ function ProfilesTab({ onChange }: { onChange: () => void }) {
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{rows ? `${count.toLocaleString()} members` : "…"}</span>
           {dirty && (
-            <button onClick={() => setF(BLANK)} className="text-primary hover:underline">
+            <button
+              onClick={() => setF(BLANK_FILTERS)}
+              className="text-primary hover:underline"
+            >
               Reset filters
             </button>
           )}
@@ -260,69 +198,25 @@ function ProfilesTab({ onChange }: { onChange: () => void }) {
       {!rows ? (
         <Spinner className="text-primary" />
       ) : rows.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">No members match.</p>
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          No members match.
+        </p>
       ) : (
         <div className="space-y-2">
           {rows.map((p) => (
-            <Card key={p.id}>
-              <CardContent className="flex flex-wrap items-center gap-3 py-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <Link
-                      href={`/profiles/${p.id}`}
-                      className="truncate font-medium hover:underline"
-                    >
-                      {p.full_name || p.regno}
-                    </Link>
-                    {p.is_verified && <BadgeCheck className="size-4 text-primary" />}
-                    {p.status === "suspended" && <Badge variant="destructive">Suspended</Badge>}
-                    {p.plan !== "Free" && <Badge variant="secondary">{p.plan}</Badge>}
-                  </div>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {p.regno} · {p.email}
-                    {p.phone ? ` · ${p.phone}` : ""} · {p.gender === "F" ? "Bride" : "Groom"}
-                    {p.age ? `, ${p.age}y` : ""} · {p.subcaste || "—"}
-                    {p.region ? `, ${p.region}` : ""} · {p.photo_count} photo
-                    {p.photo_count === 1 ? "" : "s"}
-                    {p.pending_photo_count > 0 && ` (${p.pending_photo_count} pending)`}
-                  </p>
-                </div>
-                <div className="flex gap-1.5">
-                  <Button
-                    size="sm"
-                    variant={p.is_verified ? "outline" : "default"}
-                    disabled={busy === p.id}
-                    onClick={() => act(p.id, p.is_verified ? "unverify" : "verify")}
-                  >
-                    {p.is_verified ? <X className="size-4" /> : <Check className="size-4" />}
-                    {p.is_verified ? "Unverify" : "Verify"}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={busy === p.id}
-                    onClick={() =>
-                      act(p.id, p.status === "suspended" ? "reinstate" : "suspend")
-                    }
-                  >
-                    {p.status === "suspended" ? (
-                      <RotateCcw className="size-4" />
-                    ) : (
-                      <Ban className="size-4" />
-                    )}
-                    {p.status === "suspended" ? "Reinstate" : "Suspend"}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <MemberRow
+              key={p.id}
+              p={p}
+              busy={busy === p.id}
+              onAct={(id, a) => act(id, a).then(onChange)}
+            />
           ))}
-
           {rows.length < count && (
             <Button
               variant="outline"
               className="w-full"
               disabled={loadingMore}
-              onClick={() => load(rows.length)}
+              onClick={loadMore}
             >
               {loadingMore ? <Spinner /> : `Load more (${count - rows.length} left)`}
             </Button>
