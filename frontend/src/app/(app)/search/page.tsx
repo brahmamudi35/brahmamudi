@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Filter, SearchX } from "lucide-react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { BookmarkPlus, Filter, SearchX } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   ProfileCard,
@@ -10,11 +12,22 @@ import {
 import {
   EMPTY_FILTERS,
   type Filters,
+  filtersToObject,
   filtersToQuery,
+  objectToFilters,
   SearchFilters,
 } from "@/components/profiles/search-filters";
 import { Container } from "@/components/site/container";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
   Sheet,
   SheetContent,
@@ -24,15 +37,34 @@ import {
 } from "@/components/ui/sheet";
 import { Spinner } from "@/components/ui/spinner";
 import { apiFetch } from "@/lib/api";
+import { handleApiError } from "@/lib/form";
 import { useReferenceData } from "@/lib/reference";
-import type { Paginated, ProfileSummary } from "@/lib/types";
+import type { Paginated, ProfileSummary, SavedSearch } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const PAGE = 24;
 
 export default function SearchPage() {
+  return (
+    <Suspense fallback={null}>
+      <SearchInner />
+    </Suspense>
+  );
+}
+
+function SearchInner() {
   const { data: ref } = useReferenceData();
+  const params = useSearchParams();
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+
+  // ?saved=<id> preloads that saved search's filters
+  useEffect(() => {
+    const id = params.get("saved");
+    if (!id) return;
+    apiFetch<SavedSearch>(`/saved-searches/${id}/`)
+      .then((s) => setFilters(objectToFilters(s.filters)))
+      .catch(() => {});
+  }, [params]);
   const [results, setResults] = useState<ProfileSummary[]>([]);
   const [count, setCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -118,13 +150,16 @@ export default function SearchPage() {
         </div>
         <div className="flex items-center gap-2">
           {activeCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setFilters(EMPTY_FILTERS)}
-            >
-              Clear
-            </Button>
+            <>
+              <SaveSearchDialog filters={filters} />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setFilters(EMPTY_FILTERS)}
+              >
+                Clear
+              </Button>
+            </>
           )}
           <Sheet>
             <SheetTrigger
@@ -190,5 +225,70 @@ export default function SearchPage() {
         </div>
       </div>
     </Container>
+  );
+}
+
+function SaveSearchDialog({ filters }: { filters: Filters }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [alerts, setAlerts] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    try {
+      await apiFetch("/saved-searches/", {
+        method: "POST",
+        body: {
+          name: name.trim() || "My search",
+          filters: filtersToObject(filters),
+          alerts_enabled: alerts,
+        },
+      });
+      toast.success("Search saved.");
+      setOpen(false);
+      setName("");
+    } catch (err) {
+      handleApiError(err);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
+        <BookmarkPlus className="size-4" />
+        Save
+      </Button>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="font-heading">Save this search</DialogTitle>
+        </DialogHeader>
+        <Input
+          autoFocus
+          placeholder="Name (e.g. Goldsmith, 25–30, Telangana)"
+          value={name}
+          maxLength={80}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <label className="flex items-center gap-2 text-sm">
+          <Checkbox
+            checked={alerts}
+            onCheckedChange={(v) => setAlerts(v === true)}
+          />
+          Email me when new profiles match
+        </label>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
+            Cancel
+          </Button>
+          <Button onClick={save} disabled={saving}>
+            {saving && <Spinner />}
+            Save search
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

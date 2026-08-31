@@ -323,3 +323,36 @@ export interface MatchInfo {
 }
 
 export type SuggestedProfile = ProfileSummary & { match: MatchInfo };
+
+export type NotificationKind =
+  | "interest_received"
+  | "interest_accepted"
+  | "interest_declined"
+  | "profile_view"
+  | "profile_verified"
+  | "photo_approved"
+  | "photo_rejected"
+  | "subscription_activated"
+  | "search_alert";
+
+export interface Notification {
+  id: number;
+  kind: NotificationKind;
+  text: string;
+  url: string;
+  data: Record<string, unknown>;
+  actor: number | null;
+  actor_name: string;
+  read: boolean;
+  created_at: string;
+}
+
+export interface SavedSearch {
+  id: number;
+  name: string;
+  filters: Record<string, string | string[]>;
+  alerts_enabled: boolean;
+  last_alerted_at: string | null;
+  match_count: number | null;
+  created_at: string;
+}

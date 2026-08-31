@@ -64,6 +64,36 @@ export function filtersToQuery(f: Filters): URLSearchParams {
   return p;
 }
 
+/** Plain object form for persisting a saved search (server-consumable). */
+export function filtersToObject(f: Filters): Record<string, string | string[]> {
+  const o: Record<string, string | string[]> = {};
+  for (const [k, v] of Object.entries(f)) {
+    if (k === "ordering") continue;
+    if (Array.isArray(v) ? v.length : v) o[k === "q" ? "search" : k] = v;
+  }
+  return o;
+}
+
+export function objectToFilters(o: Record<string, string | string[]>): Filters {
+  const arr = (v: unknown) => (Array.isArray(v) ? (v as string[]) : v ? [String(v)] : []);
+  const str = (v: unknown) => (v == null ? "" : String(v));
+  return {
+    ...EMPTY_FILTERS,
+    q: str(o.search ?? o.q),
+    age_min: str(o.age_min),
+    age_max: str(o.age_max),
+    height_min: str(o.height_min),
+    height_max: str(o.height_max),
+    nakshatram: str(o.nakshatram),
+    gothram: str(o.gothram),
+    country_living: str(o.country_living),
+    subcaste: arr(o.subcaste),
+    marital_status: arr(o.marital_status),
+    region: arr(o.region),
+    food_habit: arr(o.food_habit),
+  };
+}
+
 const ORDERING: Choice[] = [
   { value: "-created_at", label: "Newest first" },
   { value: "date_of_birth", label: "Age: youngest" },

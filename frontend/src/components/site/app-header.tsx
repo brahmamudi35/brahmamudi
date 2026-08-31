@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Bookmark,
   Eye,
   Heart,
   LogOut,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "next-themes";
 
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Container } from "@/components/site/container";
 import { Logo } from "@/components/site/logo";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -43,6 +45,7 @@ const NAV = [
   { href: "/interests", label: "Interests", icon: Heart },
   { href: "/shortlist", label: "Shortlist", icon: Star },
   { href: "/visitors", label: "Visitors", icon: Eye },
+  { href: "/saved-searches", label: "Saved", icon: Bookmark },
 ];
 
 export function AppHeader() {
@@ -83,6 +86,7 @@ export function AppHeader() {
         </div>
 
         <div className="flex items-center gap-1.5">
+          <NotificationBell />
           <Button
             variant="ghost"
             size="icon"
