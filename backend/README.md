@@ -42,11 +42,22 @@ DATABASE_URL=postgres://brahmamudi:brahmamudi@localhost:5432/brahmamudi
 | `payments` | `PayUCredential`, `PaymentTransaction`, PayU hashing + return/webhook |
 | `interests` | `InterestTemplate`, `Interest`, notification emails, daily send quota |
 | `moderation` | Staff-only profile / photo moderation + member-directory API |
+| `notifications` | In-app `Notification` feed + triggers (interests, views, moderation, payment) |
+| `alerts` | `SavedSearch` + the `send_search_alerts` command |
 
 ## Tests
 
 ```bash
-python manage.py test              # ~57 tests, SQLite, no extra services
+python manage.py test              # ~84 tests, SQLite, no extra services
+```
+
+## Scheduled jobs
+
+`send_search_alerts` emails + notifies members when new profiles match a saved
+search. Run it on a schedule (cron / systemd timer / CI), e.g. hourly:
+
+```cron
+0 * * * *  cd /srv/brahmamudi/backend && ../.venv/bin/python manage.py send_search_alerts
 ```
 
 ## Rate limiting
@@ -100,6 +111,10 @@ Base path `/api/v1/`.
 | POST | `moderation/profiles/{id}/verify\|unverify\|suspend\|reinstate/` | staff |
 | GET | `moderation/photos/?filter=pending` | staff |
 | POST | `moderation/photos/{id}/approve/` · DELETE `moderation/photos/{id}/` | staff: approve / reject |
+| GET | `notifications/` · `notifications/unread-count/` | my in-app notifications |
+| POST | `notifications/read/` | `{ids?: [...]}` — omit `ids` to mark all read |
+| GET/POST | `saved-searches/` · GET/PATCH/DELETE `saved-searches/{id}/` | my saved searches |
+| GET | `saved-searches/{id}/results/` | run the saved search now (paginated) |
 | GET | `reference/nakshatram/`, `reference/raasi/`, `reference/education-levels/` | public |
 
 Interest and porutham details, plus `AUTO_APPROVE_PHOTOS` (photos live on upload
