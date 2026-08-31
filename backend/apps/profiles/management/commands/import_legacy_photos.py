@@ -2,7 +2,8 @@
 
 The SQL dump only stores filenames (`tbl_profiles.photo1` / `photo2`); the actual
 JPEGs must be copied off the old server first (cPanel File Manager / FTP / SSH).
-Point --source at that directory.
+The old host has two folders: `thumbphotos/` (75px thumbnails, useless) and
+`thumbphotos/photos/` (full-size originals). Point --source at the latter.
 
     # what files the migration needs (no --source required):
     python manage.py import_legacy_photos --report needed-photos.csv
