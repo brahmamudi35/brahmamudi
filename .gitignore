@@ -20,3 +20,6 @@ backend/tools/legacy_import/_work/
 .idea/
 .DS_Store
 Thumbs.db
+
+# recovered legacy images — kept locally, never committed
+/thumbphotos/
