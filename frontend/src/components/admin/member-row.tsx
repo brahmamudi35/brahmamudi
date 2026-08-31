@@ -41,6 +41,13 @@ export function MemberRow({
             {p.photo_count === 1 ? "" : "s"}
             {p.pending_photo_count > 0 && ` (${p.pending_photo_count} pending)`}
           </p>
+          {(p.designation || p.work_location || p.education_detail) && (
+            <p className="truncate text-xs text-muted-foreground/80">
+              {[p.designation || p.occupation, p.work_location, p.education_detail]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          )}
         </div>
         <div className="flex gap-1.5">
           <Button

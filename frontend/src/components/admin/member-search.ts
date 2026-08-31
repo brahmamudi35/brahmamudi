@@ -14,6 +14,7 @@ export interface MemberFilters {
   gender: string;
   subcaste: string[];
   region: string[];
+  education: string[];
   marital_status: string;
   status: string;
   is_verified: string;
@@ -21,6 +22,8 @@ export interface MemberFilters {
   has_photo: string;
   age_min: string;
   age_max: string;
+  designation: string;
+  work_location: string;
 }
 
 export const BLANK_FILTERS: MemberFilters = {
@@ -29,6 +32,7 @@ export const BLANK_FILTERS: MemberFilters = {
   gender: "",
   subcaste: [],
   region: [],
+  education: [],
   marital_status: "",
   status: "",
   is_verified: "",
@@ -36,12 +40,16 @@ export const BLANK_FILTERS: MemberFilters = {
   has_photo: "",
   age_min: "",
   age_max: "",
+  designation: "",
+  work_location: "",
 };
 
 const SINGLE = [
   "gender", "marital_status", "status", "is_verified", "plan",
-  "has_photo", "age_min", "age_max",
+  "has_photo", "age_min", "age_max", "designation", "work_location",
 ] as const;
+
+const MULTI = ["subcaste", "region", "education"] as const;
 
 export function buildMemberQuery(
   f: MemberFilters,
@@ -53,11 +61,19 @@ export function buildMemberQuery(
     offset: String(offset),
   });
   if (f.search.trim()) p.set("search", f.search.trim());
-  for (const k of SINGLE) if (f[k]) p.set(k, f[k]);
-  for (const v of f.subcaste) p.append("subcaste", v);
-  for (const v of f.region) p.append("region", v);
+  for (const k of SINGLE) if (f[k].trim()) p.set(k, f[k].trim());
+  for (const k of MULTI) for (const v of f[k]) p.append(k, v);
   return p.toString();
 }
+
+export const EDUCATION_OPTIONS = [
+  { value: "school", label: "School" },
+  { value: "diploma", label: "Diploma" },
+  { value: "bachelors", label: "Bachelor's" },
+  { value: "masters", label: "Master's" },
+  { value: "doctorate", label: "Doctorate" },
+  { value: "other", label: "Other" },
+];
 
 /** Lightweight: how many members match, without pulling the rows. */
 export function useMatchCount(queryString: string): number | null {

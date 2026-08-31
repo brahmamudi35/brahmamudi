@@ -10,6 +10,7 @@ import { MemberRow } from "@/components/admin/member-row";
 import {
   BLANK_FILTERS,
   buildMemberQuery,
+  EDUCATION_OPTIONS,
   type MemberFilters,
   useMemberList,
 } from "@/components/admin/member-search";
@@ -179,6 +180,18 @@ function DirectoryTab({ onChange }: { onChange: () => void }) {
             placeholder="Age max"
             className={fieldCls}
           />
+          <input
+            value={f.designation}
+            onChange={set("designation")}
+            placeholder="Position / role"
+            className={fieldCls}
+          />
+          <input
+            value={f.work_location}
+            onChange={set("work_location")}
+            placeholder="Work location"
+            className={fieldCls}
+          />
         </div>
         <MultiChips
           label="Sub-caste"
@@ -191,6 +204,12 @@ function DirectoryTab({ onChange }: { onChange: () => void }) {
           options={enums?.region}
           value={f.region}
           onChange={(v) => setF((s) => ({ ...s, region: v }))}
+        />
+        <MultiChips
+          label="Qualification"
+          options={EDUCATION_OPTIONS}
+          value={f.education}
+          onChange={(v) => setF((s) => ({ ...s, education: v }))}
         />
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{rows ? `${count.toLocaleString()} members` : "…"}</span>

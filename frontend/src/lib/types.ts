@@ -277,6 +277,9 @@ export interface ModerationProfile {
   region: string;
   marital_status: string;
   occupation: string;
+  designation: string;
+  work_location: string;
+  education_detail: string;
   country_living: string;
   status: string;
   is_verified: boolean;

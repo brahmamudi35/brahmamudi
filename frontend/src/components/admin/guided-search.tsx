@@ -13,6 +13,7 @@ import { MemberRow } from "./member-row";
 import {
   BLANK_FILTERS,
   buildMemberQuery,
+  EDUCATION_OPTIONS,
   type MemberFilters,
   useMatchCount,
   useMemberList,
@@ -20,7 +21,10 @@ import {
 
 const START: MemberFilters = { ...BLANK_FILTERS, preset: "all" };
 
-const STEPS = ["who", "age", "subcaste", "region", "marital", "extras"] as const;
+const STEPS = [
+  "who", "age", "subcaste", "region", "marital",
+  "qualification", "career", "extras",
+] as const;
 type StepId = (typeof STEPS)[number];
 
 export function GuidedSearch({ onChange }: { onChange: () => void }) {
@@ -112,6 +116,35 @@ export function GuidedSearch({ onChange }: { onChange: () => void }) {
           </Question>
         )}
 
+        {id === "qualification" && (
+          <Question title="Qualification?" hint="Pick one or more, or leave on Any.">
+            <MultiChips
+              options={EDUCATION_OPTIONS}
+              value={f.education}
+              onChange={(v) => set({ education: v })}
+            />
+          </Question>
+        )}
+
+        {id === "career" && (
+          <Question title="Position & work location?" hint="Optional. Matches part of the text.">
+            <div className="space-y-3">
+              <TextInput
+                label="Position / role"
+                value={f.designation}
+                onChange={(v) => set({ designation: v })}
+                placeholder="e.g. Software Engineer, Doctor"
+              />
+              <TextInput
+                label="Present work location"
+                value={f.work_location}
+                onChange={(v) => set({ work_location: v })}
+                placeholder="e.g. Hyderabad, USA"
+              />
+            </div>
+          </Question>
+        )}
+
         {id === "extras" && (
           <Question title="Anything else?" hint="Optional final filters.">
             <div className="space-y-2">
@@ -197,7 +230,12 @@ function Results({
       : null,
     filters.subcaste.join(" / "),
     filters.region.join(" / "),
+    filters.education
+      .map((e) => EDUCATION_OPTIONS.find((o) => o.value === e)?.label ?? e)
+      .join(" / "),
     filters.marital_status,
+    filters.designation && `role: ${filters.designation}`,
+    filters.work_location && `at: ${filters.work_location}`,
     filters.is_verified === "true" ? "verified" : filters.is_verified === "false" ? "unverified" : null,
     filters.has_photo === "yes" ? "with photo" : filters.has_photo === "no" ? "no photo" : filters.has_photo === "pending" ? "photo pending" : null,
     filters.status,
@@ -432,5 +470,31 @@ function NumInput({
       placeholder={placeholder}
       className="h-9 w-20 rounded-md border bg-background px-2 text-sm outline-none focus-visible:border-ring"
     />
+  );
+}
+
+function TextInput({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-medium text-muted-foreground">
+        {label}
+      </span>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="h-9 w-full rounded-md border bg-background px-2 text-sm outline-none focus-visible:border-ring"
+      />
+    </label>
   );
 }

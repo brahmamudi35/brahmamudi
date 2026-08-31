@@ -16,9 +16,10 @@ class ModerationProfileSerializer(serializers.ModelSerializer):
         model = Profile
         fields = (
             "id", "regno", "full_name", "email", "phone", "gender", "age",
-            "subcaste", "region", "marital_status", "occupation",
-            "country_living", "status", "is_verified", "plan",
-            "photo_count", "pending_photo_count", "created_at",
+            "subcaste", "region", "marital_status", "occupation", "designation",
+            "work_location", "education_detail", "country_living", "status",
+            "is_verified", "plan", "photo_count", "pending_photo_count",
+            "created_at",
         )
 
     def get_plan(self, obj) -> str:

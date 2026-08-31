@@ -5,6 +5,7 @@ from django.db.models import Exists, OuterRef, Q
 
 from apps.profiles.models import Profile, ProfilePhoto
 from apps.reference import enums
+from apps.reference.models import EducationLevel
 
 
 def _years_ago(years: int) -> date:
@@ -31,6 +32,12 @@ class ModerationProfileFilter(filters.FilterSet):
     )
     plan = filters.CharFilter(method="f_plan")
     joined_after = filters.DateFilter(field_name="created_at", lookup_expr="date__gte")
+
+    education = filters.MultipleChoiceFilter(
+        field_name="education__category", choices=EducationLevel.CATEGORY_CHOICES
+    )
+    designation = filters.CharFilter(lookup_expr="icontains")
+    work_location = filters.CharFilter(lookup_expr="icontains")
 
     class Meta:
         model = Profile

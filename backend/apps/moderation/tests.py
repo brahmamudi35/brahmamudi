@@ -109,6 +109,19 @@ class ModerationDirectoryFilterTests(ApiTestCase):
         self.assertEqual(self._ids(f"filter=all&search={self.young_m.regno}"),
                          {self.young_m.pk})
 
+    def test_qualification_position_and_location_filters(self):
+        from apps.reference.models import EducationLevel
+
+        masters = EducationLevel.objects.filter(category="masters").first()
+        p = make_profile(
+            gender=Gender.MALE, first_name="Kiran", education=masters,
+            designation="Senior Data Scientist", work_location="Bengaluru",
+        )
+        self.assertIn(p.pk, self._ids("filter=all&education=masters"))
+        self.assertNotIn(self.young_m.pk, self._ids("filter=all&education=masters"))
+        self.assertEqual(self._ids("filter=all&designation=data scientist"), {p.pk})
+        self.assertEqual(self._ids("filter=all&work_location=bengaluru"), {p.pk})
+
     def test_serializer_exposes_plan_and_contact(self):
         row = next(r for r in
                    self.client.get("/api/v1/moderation/profiles/?filter=all").data["results"]
