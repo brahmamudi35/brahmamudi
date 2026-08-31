@@ -1,8 +1,10 @@
-"""Domain services for profiles: view tracking and contact-detail unlocking."""
+"""Domain services for profiles: view tracking, contact-detail unlocking,
+profile completeness."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Iterable
 
 from django.db import IntegrityError, transaction
 from django.db.models import F
@@ -89,6 +91,70 @@ def contact_quota(profile: Profile) -> QuotaStatus:
 
 def has_unlocked(viewer: Profile, viewed: Profile) -> bool:
     return ContactUnlock.objects.filter(viewer=viewer, viewed=viewed).exists()
+
+
+# --- profile completeness -------------------------------------------------
+
+# (key, label, onboarding step index, weight, required attribute names)
+# A section with no attrs is scored by a custom rule in `_section_ratio`.
+_COMPLETENESS_SECTIONS = [
+    ("about", "Basic details", 0, 15,
+     ["first_name", "gender", "date_of_birth", "marital_status"]),
+    ("appearance", "Appearance", 1, 10, ["height_cm", "complexion", "food_habit"]),
+    ("horoscope", "Community & horoscope", 2, 15,
+     ["subcaste", "gothram", "nakshatram_id", "raasi_id"]),
+    ("career", "Education & career", 3, 15, ["education_detail", "occupation"]),
+    ("location", "Location", 4, 10, ["country_living", "region"]),
+    ("family", "Family", 5, 10,
+     ["father_name", "mother_name", "family_background"]),
+    ("about_text", "About you", 5, 5, ["about"]),
+    ("preference", "Partner preference", 6, 5, []),
+    ("photos", "Photos", 7, 15, []),
+]
+
+
+def _filled(profile: Profile, attrs: Iterable[str]) -> int:
+    return sum(1 for a in attrs if getattr(profile, a, None))
+
+
+def _section_ratio(profile: Profile, key: str, attrs: list[str]) -> float:
+    if key == "photos":
+        return 1.0 if profile.photos.filter(is_approved=True).exists() else 0.0
+    if key == "preference":
+        pref = getattr(profile, "partner_preference", None)
+        if pref is None:
+            return 0.0
+        signals = [
+            pref.age_min or pref.age_max,
+            pref.height_min_cm or pref.height_max_cm,
+            pref.subcastes, pref.marital_status, pref.regions,
+            pref.countries, pref.education_categories, pref.food_habits,
+        ]
+        return 1.0 if any(signals) else 0.0
+    return _filled(profile, attrs) / len(attrs) if attrs else 0.0
+
+
+def completeness(profile: Profile) -> dict:
+    sections, percent = [], 0.0
+    for key, label, step, weight, attrs in _COMPLETENESS_SECTIONS:
+        ratio = _section_ratio(profile, key, attrs)
+        percent += weight * ratio
+        sections.append({
+            "key": key,
+            "label": label,
+            "step": step,
+            "weight": weight,
+            "ratio": round(ratio, 2),
+            "done": ratio >= 0.999,
+        })
+    percent = round(percent)
+    return {
+        "percent": percent,
+        "complete": percent >= 100,
+        "next": next((s for s in sections if not s["done"]), None),
+        "missing": [s for s in sections if not s["done"]],
+        "sections": sections,
+    }
 
 
 @transaction.atomic

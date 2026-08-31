@@ -15,7 +15,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from apps.reference.enums import Gender, ProfileStatus
 from config.throttling import ContactUnlockThrottle, PhotoUploadThrottle, PoruthamThrottle
 
-from . import porutham, services
+from . import matching, porutham, services
 from .filters import ProfileFilter
 from .models import PartnerPreference, Profile, ProfilePhoto, ProfileView, Shortlist
 from .serializers import (
@@ -163,6 +163,37 @@ class ProfileViewSet(viewsets.ModelViewSet):
             .order_by("-last_viewed_at")
         )
         return self._paginated(qs, ProfileVisitorSerializer, direction="viewed")
+
+    @decorators.action(detail=False, url_path="me/completeness")
+    def completeness(self, request):
+        profile = getattr(request.user, "profile", None)
+        if profile is None:
+            return response.Response({"detail": "No profile yet."}, status=404)
+        return response.Response(services.completeness(profile))
+
+    @decorators.action(detail=False)
+    def suggestions(self, request):
+        profile = getattr(request.user, "profile", None)
+        if profile is None:
+            return response.Response({"detail": "No profile yet."}, status=404)
+        try:
+            limit = min(int(request.query_params.get("limit", 12)), 30)
+        except ValueError:
+            limit = 12
+        ranked = matching.suggestions(profile, limit=limit)
+        ctx = {"request": request}
+        return response.Response([
+            {
+                **ProfileListSerializer(item["profile"], context=ctx).data,
+                "match": {
+                    "score": item["score"],
+                    "reasons": item["reasons"],
+                    "porutham_verdict": item["porutham_verdict"],
+                    "porutham_percent": item["porutham_percent"],
+                },
+            }
+            for item in ranked
+        ])
 
     @decorators.action(detail=False, url_path="me/shortlist")
     def shortlist_list(self, request):
