@@ -48,7 +48,7 @@ DATABASE_URL=postgres://brahmamudi:brahmamudi@localhost:5432/brahmamudi
 ## Tests
 
 ```bash
-python manage.py test              # ~84 tests, SQLite, no extra services
+python manage.py test              # ~94 tests, SQLite, no extra services
 ```
 
 ## Scheduled jobs
@@ -88,6 +88,7 @@ Base path `/api/v1/`.
 | GET | `profiles/` | browse (opposite gender, filtered) |
 | GET | `profiles/{id}/` | detail; records a visit; contact fields gated |
 | GET/POST/PUT/PATCH | `profiles/me/` | own profile (POST creates it) |
+| GET/POST/DELETE | `profiles/me/horoscope/` | jataka PDF/image (one per profile) |
 | GET | `profiles/me/contact-quota/` | remaining contact views |
 | GET | `profiles/me/visitors/` | who viewed me |
 | GET | `profiles/me/viewed/` | profiles I viewed |
@@ -111,6 +112,7 @@ Base path `/api/v1/`.
 | POST | `moderation/profiles/{id}/verify\|unverify\|suspend\|reinstate/` | staff |
 | GET | `moderation/photos/?filter=pending` | staff |
 | POST | `moderation/photos/{id}/approve/` · DELETE `moderation/photos/{id}/` | staff: approve / reject |
+| GET | `moderation/horoscopes/?filter=pending` · POST `{id}/approve/` · DELETE `{id}/` | staff: horoscope queue |
 | GET | `notifications/` · `notifications/unread-count/` | my in-app notifications |
 | POST | `notifications/read/` | `{ids?: [...]}` — omit `ids` to mark all read |
 | GET/POST | `saved-searches/` · GET/PATCH/DELETE `saved-searches/{id}/` | my saved searches |
