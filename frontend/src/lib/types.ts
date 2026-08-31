@@ -310,3 +310,29 @@ export interface Conversation {
   last_message_at: string | null;
   created_at: string;
 }
+
+export interface CompletenessSection {
+  key: string;
+  label: string;
+  step: number;
+  weight: number;
+  ratio: number;
+  done: boolean;
+}
+
+export interface Completeness {
+  percent: number;
+  complete: boolean;
+  next: CompletenessSection | null;
+  missing: CompletenessSection[];
+  sections: CompletenessSection[];
+}
+
+export interface MatchInfo {
+  score: number;
+  reasons: string[];
+  porutham_verdict: PoruthamVerdict;
+  porutham_percent: number | null;
+}
+
+export type SuggestedProfile = ProfileSummary & { match: MatchInfo };

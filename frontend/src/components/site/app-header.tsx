@@ -13,6 +13,7 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
+  Star,
   Sun,
   User as UserIcon,
 } from "lucide-react";
@@ -41,10 +42,11 @@ import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 const NAV = [
+  { href: "/matches", label: "Matches", icon: Sparkles },
   { href: "/search", label: "Search", icon: Search },
   { href: "/interests", label: "Interests", icon: Heart },
   { href: "/messages", label: "Messages", icon: MessageCircle },
-  { href: "/shortlist", label: "Shortlist", icon: Sparkles },
+  { href: "/shortlist", label: "Shortlist", icon: Star },
   { href: "/visitors", label: "Visitors", icon: Eye },
 ];
 

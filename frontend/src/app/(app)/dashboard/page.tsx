@@ -8,10 +8,13 @@ import {
   Clock,
   ImageIcon,
   MailWarning,
+  Sparkles,
   UserRoundPen,
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { MatchCard } from "@/components/profiles/match-card";
+import { ProfileCardSkeleton } from "@/components/profiles/profile-card";
 import { Container } from "@/components/site/container";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,15 +25,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import type { Profile } from "@/lib/types";
+import type { Completeness, Profile, SuggestedProfile } from "@/lib/types";
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [completeness, setCompleteness] = useState<Completeness | null>(null);
 
   useEffect(() => {
     if (!user?.has_profile) {
@@ -41,6 +46,9 @@ export default function DashboardPage() {
       .then(setProfile)
       .catch(() => setProfile(null))
       .finally(() => setLoading(false));
+    apiFetch<Completeness>("/profiles/me/completeness/")
+      .then(setCompleteness)
+      .catch(() => {});
   }, [user?.has_profile]);
 
   return (
@@ -63,6 +71,9 @@ export default function DashboardPage() {
         </div>
 
         <div className="space-y-4">
+          {user?.has_profile && completeness && !completeness.complete && (
+            <CompletenessCard data={completeness} />
+          )}
           <QuickLink
             href="/onboarding"
             icon={UserRoundPen}
@@ -78,7 +89,65 @@ export default function DashboardPage() {
           />
         </div>
       </div>
+
+      {user?.has_profile && <MatchesStrip />}
     </Container>
+  );
+}
+
+function CompletenessCard({ data }: { data: Completeness }) {
+  return (
+    <Card className="border-primary/30 bg-primary/5">
+      <CardContent className="space-y-3 py-4">
+        <div className="flex items-center justify-between text-sm">
+          <span className="font-medium">Profile {data.percent}% complete</span>
+        </div>
+        <Progress value={data.percent} />
+        <div className="flex flex-wrap gap-1.5">
+          {data.missing.slice(0, 4).map((s) => (
+            <Link
+              key={s.key}
+              href={`/onboarding?step=${s.step}`}
+              className="rounded-full border border-primary/30 bg-background px-2 py-0.5 text-xs hover:bg-accent"
+            >
+              + {s.label}
+            </Link>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function MatchesStrip() {
+  const [rows, setRows] = useState<SuggestedProfile[] | null>(null);
+
+  useEffect(() => {
+    apiFetch<SuggestedProfile[]>("/profiles/suggestions/?limit=8")
+      .then(setRows)
+      .catch(() => setRows([]));
+  }, []);
+
+  if (rows && rows.length === 0) return null;
+
+  return (
+    <section className="mt-10">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="flex items-center gap-2 font-heading text-xl font-semibold">
+          <Sparkles className="size-5 text-primary" />
+          Matches for you
+        </h2>
+        <Button variant="ghost" size="sm" render={<Link href="/matches" />}>
+          See all
+          <ChevronRight className="size-4" />
+        </Button>
+      </div>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        {!rows
+          ? Array.from({ length: 4 }).map((_, i) => <ProfileCardSkeleton key={i} />)
+          : rows.map((p) => <MatchCard key={p.id} profile={p} />)}
+      </div>
+    </section>
   );
 }
 

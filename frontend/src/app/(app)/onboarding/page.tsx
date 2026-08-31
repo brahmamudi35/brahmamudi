@@ -99,6 +99,13 @@ export default function OnboardingPage() {
   const { data: ref, error: refError } = useReferenceData();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
+
+  // Deep link: /onboarding?step=2 jumps straight to that section.
+  useEffect(() => {
+    const raw = new URLSearchParams(window.location.search).get("step");
+    const n = raw ? Number(raw) : NaN;
+    if (Number.isInteger(n) && n >= 0 && n < STEPS.length) setStep(n);
+  }, []);
   const [profileSaved, setProfileSaved] = useState(!!user?.has_profile);
   const [hydrated, setHydrated] = useState(false);
 
