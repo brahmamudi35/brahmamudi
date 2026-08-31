@@ -73,11 +73,21 @@ class ApiTestCase(APITestCase):
     """APITestCase that reseeds reference data once and clears cache per test."""
 
     @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        import logging
+
+        # 4xx responses are asserted on all over the suite; don't log each one.
+        logging.getLogger("django.request").setLevel(logging.ERROR)
+
+    @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
+        import io
+
         from django.core.management import call_command
 
-        call_command("seed_reference", verbosity=0)
+        call_command("seed_reference", verbosity=0, stdout=io.StringIO())
 
     def setUp(self):
         super().setUp()

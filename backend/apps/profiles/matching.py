@@ -36,6 +36,15 @@ def _dob_bound(age: int) -> date:
         return today.replace(year=today.year - age, day=28)
 
 
+# Legacy "no preference" sentinels that must not count as a real criterion.
+_ANY = {"", "any", "any region", "anyregion", "doesn't matter", "does not matter",
+        "no preference", "all", "open"}
+
+
+def _real(values) -> list:
+    return [v for v in (values or []) if str(v).strip().lower() not in _ANY]
+
+
 def _pref_ratio(pref, cand) -> tuple[float, list[str]]:
     """Fraction of the member's stated preferences the candidate meets, with a
     short human reason for each hit."""
@@ -56,24 +65,26 @@ def _pref_ratio(pref, cand) -> tuple[float, list[str]]:
         met = h is not None and (not hlo or h >= hlo) and (not hhi or h <= hhi)
         checks.append((True, met, "In your height range"))
 
-    for specified, met, reason in (
-        (pref.subcastes, cand.subcaste in (pref.subcastes or []), "Same sub-caste"),
-        (pref.marital_status,
-         cand.marital_status in (pref.marital_status or []), "Marital status matches"),
-        (pref.regions, cand.region in (pref.regions or []), "Preferred region"),
-        (pref.food_habits,
-         cand.food_habit in (pref.food_habits or []), "Food habits match"),
-        (pref.education_categories,
-         cand.education and cand.education.category in (pref.education_categories or []),
+    subcastes = _real(pref.subcastes)
+    marital = _real(pref.marital_status)
+    regions = _real(pref.regions)
+    foods = _real(pref.food_habits)
+    edu = _real(pref.education_categories)
+    countries = _real(pref.countries)
+
+    for values, met, reason in (
+        (subcastes, cand.subcaste in subcastes, "Same sub-caste"),
+        (marital, cand.marital_status in marital, "Marital status matches"),
+        (regions, cand.region in regions, "Preferred region"),
+        (foods, cand.food_habit in foods, "Food habits match"),
+        (edu, cand.education and cand.education.category in edu,
          "Education level matches"),
     ):
-        if specified:
+        if values:
             checks.append((True, bool(met), reason))
 
-    if pref.countries:
-        met = any(
-            c.lower() in (cand.country_living or "").lower() for c in pref.countries
-        )
+    if countries:
+        met = any(c.lower() in (cand.country_living or "").lower() for c in countries)
         checks.append((True, met, "Living where you prefer"))
 
     specified = [c for c in checks if c[0]]
