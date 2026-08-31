@@ -101,7 +101,7 @@ Base path `/api/v1/`.
 | GET/POST | `conversations/{id}/messages/` | GET marks incoming read; POST `{body}` |
 | GET | `conversations/unread-count/` | `{unread}` |
 | GET | `moderation/summary/` | staff: queue counts |
-| GET | `moderation/profiles/?filter=unverified\|verified\|suspended\|all` | staff |
+| GET | `moderation/profiles/?filter=…` | staff directory: `filter=` preset + `search`, `gender`, `subcaste`, `region`, `status`, `is_verified`, `age_min/max`, `has_photo`, `plan`, `joined_after`, `ordering` |
 | POST | `moderation/profiles/{id}/verify\|unverify\|suspend\|reinstate/` | staff |
 | GET | `moderation/photos/?filter=pending` | staff |
 | POST | `moderation/photos/{id}/approve/` · DELETE `moderation/photos/{id}/` | staff: approve / reject |

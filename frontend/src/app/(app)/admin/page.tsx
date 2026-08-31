@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { BadgeCheck, Ban, Check, RotateCcw, Trash2, X } from "lucide-react";
+import { BadgeCheck, Ban, Check, RotateCcw, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Container } from "@/components/site/container";
@@ -14,6 +14,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { handleApiError } from "@/lib/form";
+import { useReferenceData } from "@/lib/reference";
 import type {
   ModerationPhoto,
   ModerationProfile,
@@ -23,7 +24,11 @@ import type {
 import { cn } from "@/lib/utils";
 
 type Tab = "profiles" | "photos";
-type ProfileFilter = "unverified" | "suspended" | "verified" | "all";
+type Preset = "unverified" | "suspended" | "verified" | "all";
+
+const PAGE = 25;
+const fieldCls =
+  "h-8 rounded-md border bg-background px-2 text-sm outline-none focus-visible:border-ring";
 
 export default function AdminModerationPage() {
   const { user, loading } = useAuth();
@@ -98,26 +103,80 @@ function Stat({ label, value }: { label: string; value: number }) {
   );
 }
 
+const BLANK = {
+  preset: "unverified" as Preset,
+  search: "",
+  gender: "",
+  subcaste: "",
+  region: "",
+  status: "",
+  is_verified: "",
+  plan: "",
+  has_photo: "",
+  age_min: "",
+  age_max: "",
+};
+type Filters = typeof BLANK;
+
 function ProfilesTab({ onChange }: { onChange: () => void }) {
-  const [filter, setFilter] = useState<ProfileFilter>("unverified");
+  const { data: ref } = useReferenceData();
+  const [f, setF] = useState<Filters>(BLANK);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [rows, setRows] = useState<ModerationProfile[] | null>(null);
+  const [count, setCount] = useState(0);
   const [busy, setBusy] = useState<number | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const load = useCallback(() => {
-    setRows(null);
-    apiFetch<Paginated<ModerationProfile>>(`/moderation/profiles/?filter=${filter}`)
-      .then((d) => setRows(d.results))
-      .catch(handleApiError);
-  }, [filter]);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(f.search.trim()), 350);
+    return () => clearTimeout(t);
+  }, [f.search]);
 
-  useEffect(load, [load]);
+  const query = useMemo(() => {
+    const p = new URLSearchParams({ filter: f.preset, limit: String(PAGE) });
+    if (debouncedSearch) p.set("search", debouncedSearch);
+    for (const k of ["gender", "subcaste", "region", "status", "is_verified",
+      "plan", "has_photo", "age_min", "age_max"] as const) {
+      if (f[k]) p.set(k, f[k]);
+    }
+    return p;
+  }, [f, debouncedSearch]);
+
+  const load = useCallback(
+    (offset = 0) => {
+      const p = new URLSearchParams(query);
+      p.set("offset", String(offset));
+      if (offset === 0) setRows(null);
+      else setLoadingMore(true);
+      apiFetch<Paginated<ModerationProfile>>(`/moderation/profiles/?${p}`)
+        .then((d) => {
+          setCount(d.count);
+          setRows((prev) => (offset === 0 ? d.results : [...(prev ?? []), ...d.results]));
+        })
+        .catch(handleApiError)
+        .finally(() => setLoadingMore(false));
+    },
+    [query],
+  );
+
+  useEffect(() => load(0), [load]);
 
   async function act(id: number, action: string) {
     setBusy(id);
     try {
       await apiFetch(`/moderation/profiles/${id}/${action}/`, { method: "POST" });
-      toast.success("Done.");
-      load();
+      setRows((prev) =>
+        prev?.map((r) =>
+          r.id !== id
+            ? r
+            : {
+                ...r,
+                is_verified: action === "verify" ? true : action === "unverify" ? false : r.is_verified,
+                status:
+                  action === "suspend" ? "suspended" : action === "reinstate" ? "active" : r.status,
+              },
+        ) ?? null,
+      );
       onChange();
     } catch (err) {
       handleApiError(err);
@@ -126,34 +185,89 @@ function ProfilesTab({ onChange }: { onChange: () => void }) {
     }
   }
 
+  const set = (k: keyof Filters) => (e: { target: { value: string } }) =>
+    setF((s) => ({ ...s, [k]: e.target.value }));
+
+  const enums = ref?.enums;
+  const dirty = JSON.stringify(f) !== JSON.stringify(BLANK);
+
   return (
     <>
-      <div className="mb-3 flex flex-wrap gap-2">
-        {(["unverified", "verified", "suspended", "all"] as ProfileFilter[]).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={cn(
-              "rounded-full border px-3 py-1 text-xs capitalize",
-              filter === f && "border-primary bg-primary/10 text-primary",
-            )}
-          >
-            {f}
-          </button>
-        ))}
+      <div className="mb-4 space-y-2 rounded-xl border bg-muted/20 p-3">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2 size-4 text-muted-foreground" />
+          <input
+            value={f.search}
+            onChange={set("search")}
+            placeholder="Name, reg. no, email, phone, occupation…"
+            className={cn(fieldCls, "w-full pl-8")}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+          <select value={f.preset} onChange={set("preset")} className={fieldCls}>
+            <option value="unverified">Queue: unverified</option>
+            <option value="verified">Verified</option>
+            <option value="suspended">Suspended</option>
+            <option value="all">All members</option>
+          </select>
+          <Select v={f.gender} on={set("gender")} label="Any gender" opts={enums?.gender} />
+          <Select v={f.subcaste} on={set("subcaste")} label="Any sub-caste" opts={enums?.subcaste} />
+          <Select v={f.region} on={set("region")} label="Any region" opts={enums?.region} />
+          <Select v={f.status} on={set("status")} label="Any status" opts={enums?.profile_status} />
+          <select value={f.is_verified} onChange={set("is_verified")} className={fieldCls}>
+            <option value="">Verified: any</option>
+            <option value="true">Verified only</option>
+            <option value="false">Not verified</option>
+          </select>
+          <select value={f.plan} onChange={set("plan")} className={fieldCls}>
+            <option value="">Any plan</option>
+            <option value="none">No paid plan</option>
+            <option value="silver">Silver</option>
+            <option value="gold">Gold</option>
+            <option value="platinum">Platinum</option>
+          </select>
+          <select value={f.has_photo} onChange={set("has_photo")} className={fieldCls}>
+            <option value="">Photos: any</option>
+            <option value="yes">Has approved photo</option>
+            <option value="no">No photo</option>
+            <option value="pending">Photo pending review</option>
+          </select>
+          <input
+            value={f.age_min}
+            onChange={set("age_min")}
+            inputMode="numeric"
+            placeholder="Age min"
+            className={fieldCls}
+          />
+          <input
+            value={f.age_max}
+            onChange={set("age_max")}
+            inputMode="numeric"
+            placeholder="Age max"
+            className={fieldCls}
+          />
+        </div>
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>{rows ? `${count.toLocaleString()} members` : "…"}</span>
+          {dirty && (
+            <button onClick={() => setF(BLANK)} className="text-primary hover:underline">
+              Reset filters
+            </button>
+          )}
+        </div>
       </div>
 
       {!rows ? (
         <Spinner className="text-primary" />
       ) : rows.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">Nothing here.</p>
+        <p className="py-8 text-center text-sm text-muted-foreground">No members match.</p>
       ) : (
         <div className="space-y-2">
           {rows.map((p) => (
             <Card key={p.id}>
               <CardContent className="flex flex-wrap items-center gap-3 py-3">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <Link
                       href={`/profiles/${p.id}`}
                       className="truncate font-medium hover:underline"
@@ -161,61 +275,84 @@ function ProfilesTab({ onChange }: { onChange: () => void }) {
                       {p.full_name || p.regno}
                     </Link>
                     {p.is_verified && <BadgeCheck className="size-4 text-primary" />}
-                    {p.status === "suspended" && (
-                      <Badge variant="destructive">Suspended</Badge>
-                    )}
+                    {p.status === "suspended" && <Badge variant="destructive">Suspended</Badge>}
+                    {p.plan !== "Free" && <Badge variant="secondary">{p.plan}</Badge>}
                   </div>
                   <p className="truncate text-xs text-muted-foreground">
-                    {p.regno} · {p.email} · {p.age ? `${p.age}y ` : ""}
-                    {p.subcaste} · {p.photo_count} photos
+                    {p.regno} · {p.email}
+                    {p.phone ? ` · ${p.phone}` : ""} · {p.gender === "F" ? "Bride" : "Groom"}
+                    {p.age ? `, ${p.age}y` : ""} · {p.subcaste || "—"}
+                    {p.region ? `, ${p.region}` : ""} · {p.photo_count} photo
+                    {p.photo_count === 1 ? "" : "s"}
                     {p.pending_photo_count > 0 && ` (${p.pending_photo_count} pending)`}
                   </p>
                 </div>
                 <div className="flex gap-1.5">
-                  {p.is_verified ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={busy === p.id}
-                      onClick={() => act(p.id, "unverify")}
-                    >
-                      <X className="size-4" /> Unverify
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      disabled={busy === p.id}
-                      onClick={() => act(p.id, "verify")}
-                    >
-                      <Check className="size-4" /> Verify
-                    </Button>
-                  )}
-                  {p.status === "suspended" ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={busy === p.id}
-                      onClick={() => act(p.id, "reinstate")}
-                    >
-                      <RotateCcw className="size-4" /> Reinstate
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={busy === p.id}
-                      onClick={() => act(p.id, "suspend")}
-                    >
-                      <Ban className="size-4" /> Suspend
-                    </Button>
-                  )}
+                  <Button
+                    size="sm"
+                    variant={p.is_verified ? "outline" : "default"}
+                    disabled={busy === p.id}
+                    onClick={() => act(p.id, p.is_verified ? "unverify" : "verify")}
+                  >
+                    {p.is_verified ? <X className="size-4" /> : <Check className="size-4" />}
+                    {p.is_verified ? "Unverify" : "Verify"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy === p.id}
+                    onClick={() =>
+                      act(p.id, p.status === "suspended" ? "reinstate" : "suspend")
+                    }
+                  >
+                    {p.status === "suspended" ? (
+                      <RotateCcw className="size-4" />
+                    ) : (
+                      <Ban className="size-4" />
+                    )}
+                    {p.status === "suspended" ? "Reinstate" : "Suspend"}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           ))}
+
+          {rows.length < count && (
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={loadingMore}
+              onClick={() => load(rows.length)}
+            >
+              {loadingMore ? <Spinner /> : `Load more (${count - rows.length} left)`}
+            </Button>
+          )}
         </div>
       )}
     </>
+  );
+}
+
+function Select({
+  v,
+  on,
+  label,
+  opts,
+}: {
+  v: string;
+  on: (e: { target: { value: string } }) => void;
+  label: string;
+  opts?: { value: string | number; label: string }[];
+}) {
+  return (
+    <select value={v} onChange={on} className={fieldCls}>
+      <option value="">{label}</option>
+      {opts?.map((o) => (
+        <option key={String(o.value)} value={String(o.value)}>
+          {o.label}
+        </option>
+      ))}
+    </select>
   );
 }
 

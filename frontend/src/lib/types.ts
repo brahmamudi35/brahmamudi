@@ -270,13 +270,17 @@ export interface ModerationProfile {
   regno: string;
   full_name: string;
   email: string;
+  phone: string;
   gender: string;
   age: number | null;
   subcaste: string;
+  region: string;
+  marital_status: string;
   occupation: string;
   country_living: string;
   status: string;
   is_verified: boolean;
+  plan: string;
   photo_count: number;
   pending_photo_count: number;
   created_at: string;
