@@ -82,6 +82,8 @@ Base path `/api/v1/`.
 | GET | `profiles/me/visitors/` | who viewed me |
 | GET | `profiles/me/viewed/` | profiles I viewed |
 | GET | `profiles/me/shortlist/` | my shortlist |
+| GET | `profiles/me/completeness/` | weighted 0-100 score + missing sections |
+| GET | `profiles/suggestions/` | preference + porutham ranked matches (`?limit=`) |
 | POST | `profiles/{id}/unlock-contact/` | spends 1 contact credit; 402 if none |
 | POST/DELETE | `profiles/{id}/shortlist/` | add / remove |
 | GET | `profiles/{id}/porutham/` | ten-porutham compatibility vs the caller (bride/groom by gender) |
