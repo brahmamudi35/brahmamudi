@@ -44,6 +44,7 @@ THIRD_PARTY_APPS = [
     "rest_framework_simplejwt",
     "django_filters",
     "corsheaders",
+    "drf_spectacular",
 ]
 
 LOCAL_APPS = [
@@ -165,6 +166,7 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 20,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_THROTTLE_CLASSES": (
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
@@ -190,6 +192,20 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
+
+
+# OpenAPI schema (drf-spectacular) — served at /api/schema/, /api/docs/, /api/redoc/
+SPECTACULAR_SETTINGS = {
+    "TITLE": "brahmamudi API",
+    "DESCRIPTION": "Matrimony platform API for the Vishwabrahmin community.",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SCHEMA_PATH_PREFIX": "/api/v1",
+    "COMPONENT_SPLIT_REQUEST": True,
+    "ENUM_NAME_OVERRIDES": {
+        "ProfileStatusEnum": "apps.reference.enums.ProfileStatus",
+    },
+}
 
 
 # Google Sign-In (Google Identity Services). Empty = feature disabled.
@@ -236,9 +252,41 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+LOG_JSON = env.bool("LOG_JSON", default=not DEBUG)
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "formatters": {
+        "verbose": {
+            "format": "{asctime} {levelname:<7} {name}  {message}",
+            "style": "{",
+        },
+        "json": {"()": "config.logging.JSONFormatter"},
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "json" if LOG_JSON else "verbose",
+        },
+    },
     "root": {"handlers": ["console"], "level": env("DJANGO_LOG_LEVEL", default="INFO")},
+    "loggers": {
+        # 4xx are noisy and expected; only surface 5xx from the request logger.
+        "django.request": {"level": "ERROR", "propagate": True},
+        "apps": {"level": env("APP_LOG_LEVEL", default="INFO"), "propagate": True},
+    },
 }
+
+
+# Error tracking (Sentry). Empty DSN = disabled.
+SENTRY_DSN = env("SENTRY_DSN", default="")
+if SENTRY_DSN:
+    import sentry_sdk
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=env("SENTRY_ENVIRONMENT", default="production"),
+        release=env("SENTRY_RELEASE", default=None),
+        traces_sample_rate=env.float("SENTRY_TRACES_SAMPLE_RATE", default=0.0),
+        send_default_pii=env.bool("SENTRY_SEND_PII", default=False),
+    )

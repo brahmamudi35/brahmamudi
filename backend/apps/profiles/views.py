@@ -1,6 +1,8 @@
 from uuid import uuid4
 
 from django.db.models import Prefetch
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema
 from rest_framework import (
     decorators,
     mixins,
@@ -270,6 +272,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
         return response.Response(data)
 
 
+@extend_schema(responses={200: OpenApiTypes.OBJECT})
 class PublicStatsView(views.APIView):
     permission_classes = [permissions.AllowAny]
     authentication_classes: list = []
@@ -314,9 +317,13 @@ class ProfilePhotoViewSet(
         return profile
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return ProfilePhoto.objects.none()
         return ProfilePhoto.objects.filter(profile=self._profile())
 
     def get_serializer_context(self):
+        if getattr(self, "swagger_fake_view", False):
+            return super().get_serializer_context()
         return {**super().get_serializer_context(), "profile": self._profile()}
 
     @decorators.action(detail=True, methods=["post"], url_path="make-primary")

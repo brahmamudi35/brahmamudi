@@ -8,6 +8,8 @@ off). Everything here is IsAdminUser.
 from django.db.models import Count, Q
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema
 from rest_framework import decorators, filters, mixins, permissions, response, viewsets
 
 from apps.profiles.models import Profile, ProfilePhoto
@@ -106,6 +108,7 @@ class ModerationPhotoViewSet(
         return response.Response(self.get_serializer(photo).data)
 
 
+@extend_schema(responses={200: OpenApiTypes.OBJECT})
 class ModerationSummaryView(viewsets.ViewSet):
     permission_classes = [permissions.IsAdminUser]
 

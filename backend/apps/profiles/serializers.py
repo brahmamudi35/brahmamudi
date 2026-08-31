@@ -1,3 +1,5 @@
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from . import services
@@ -66,6 +68,7 @@ class ProfileListSerializer(serializers.ModelSerializer):
             "is_verified",
         )
 
+    @extend_schema_field(OpenApiTypes.URI)
     def get_primary_photo(self, obj):
         if not obj.photos_visible:
             return None

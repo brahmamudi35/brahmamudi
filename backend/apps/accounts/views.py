@@ -1,4 +1,6 @@
 from django.conf import settings
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics, permissions, response, status, views
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -33,6 +35,7 @@ class LoginView(TokenObtainPairView):
     throttle_scope = "auth"
 
 
+@extend_schema(responses={200: OpenApiTypes.OBJECT})
 class GoogleAuthView(views.APIView):
     """Exchange a Google ID token for our JWT pair. Body: {credential}."""
 
@@ -44,6 +47,7 @@ class GoogleAuthView(views.APIView):
     def get(self, request):
         return response.Response({"enabled": bool(settings.GOOGLE_OAUTH_CLIENT_ID)})
 
+    @extend_schema(request=OpenApiTypes.OBJECT, responses={200: OpenApiTypes.OBJECT})
     def post(self, request):
         credential = request.data.get("credential")
         if not credential:

@@ -35,6 +35,8 @@ class InterestViewSet(
         return super().get_throttles()
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Interest.objects.none()
         profile = self.request.user.profile
         qs = Interest.objects.select_related(
             "sender", "sender__user", "receiver", "receiver__user", "template"

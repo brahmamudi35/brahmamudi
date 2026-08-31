@@ -1,3 +1,5 @@
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, permissions, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -20,6 +22,7 @@ class EnumsView(APIView):
 
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(responses={200: OpenApiTypes.OBJECT})
     def get(self, request):
         return Response({
             "gender": _choices(enums.Gender),

@@ -3,6 +3,8 @@ from django.db import transaction
 from django.shortcuts import redirect
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema
 from rest_framework import permissions, views
 from rest_framework.response import Response
 
@@ -12,6 +14,7 @@ from . import services
 from .models import PaymentTransaction
 
 
+@extend_schema(request=OpenApiTypes.OBJECT, responses={201: OpenApiTypes.OBJECT})
 class PayUInitiateView(views.APIView):
     """Return the signed form fields the frontend POSTs to PayU."""
 
@@ -49,6 +52,7 @@ def _result_redirect(txn: PaymentTransaction | None):
     return redirect(f"{base}/payment/result?status={txn.status}&txnid={txn.txnid}")
 
 
+@extend_schema(request=OpenApiTypes.OBJECT, responses={302: None})
 @method_decorator(csrf_exempt, name="dispatch")
 class PayUReturnView(views.APIView):
     """Browser lands here (form POST) after PayU. Process, then bounce to the UI."""
@@ -76,6 +80,7 @@ class PayUReturnView(views.APIView):
         return _result_redirect(None)
 
 
+@extend_schema(request=OpenApiTypes.OBJECT, responses={200: OpenApiTypes.OBJECT})
 @method_decorator(csrf_exempt, name="dispatch")
 class PayUWebhookView(views.APIView):
     """PayU server-to-server callback (form-encoded). Authoritative."""
