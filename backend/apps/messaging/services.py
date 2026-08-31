@@ -8,7 +8,7 @@ always reply to a paying one.
 
 from __future__ import annotations
 
-from django.db import models
+from django.db import IntegrityError, models
 from django.utils import timezone
 
 from apps.interests.models import Interest
@@ -59,7 +59,10 @@ def get_or_create_conversation(opener, other) -> Conversation:
             "Upgrade to a plan with messaging to start a conversation.",
             "plan_required",
         )
-    return Conversation.objects.create(profile_a=lo, profile_b=hi)
+    try:
+        return Conversation.objects.create(profile_a=lo, profile_b=hi)
+    except IntegrityError:  # concurrent open of the same pair
+        return Conversation.objects.get(profile_a=lo, profile_b=hi)
 
 
 def post_message(conversation: Conversation, sender, body: str) -> Message:
