@@ -1,5 +1,15 @@
-from django.contrib import admin
+import csv
 
+from django.contrib import admin
+from django.http import HttpResponse
+from django.utils import timezone
+
+from .admin_filters import (
+    ActivePlanFilter,
+    AgeBandFilter,
+    HasPhotoFilter,
+    ProfileCompleteFilter,
+)
 from .models import (
     ContactUnlock,
     PartnerPreference,
@@ -22,14 +32,52 @@ class PartnerPreferenceInline(admin.StackedInline):
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
-    list_display = ("regno", "first_name", "surname", "gender", "subcaste", "status", "is_verified", "expires_on")
-    list_filter = ("status", "gender", "subcaste", "region", "is_verified")
-    search_fields = ("regno", "first_name", "surname", "user__email", "gothram", "legacy_rid")
+    list_display = (
+        "regno", "full_name", "gender", "age_display", "subcaste", "region",
+        "status", "is_verified", "plan_display", "email", "created_at",
+    )
+    list_display_links = ("regno", "full_name")
+    list_filter = (
+        "status", "is_verified", "gender", "subcaste", "region",
+        "marital_status", "food_habit", AgeBandFilter, HasPhotoFilter,
+        ActivePlanFilter, ProfileCompleteFilter, "profile_for", "created_at",
+    )
+    search_fields = (
+        "regno", "first_name", "surname", "user__email", "user__phone",
+        "contact_phone", "parent_phone", "occupation", "company", "gothram",
+        "legacy_rid",
+    )
     autocomplete_fields = ("user", "nakshatram", "raasi", "education")
     readonly_fields = ("legacy_rid", "legacy_raw", "created_at", "updated_at")
     inlines = [ProfilePhotoInline, PartnerPreferenceInline]
-    list_select_related = ("user",)
-    actions = ("mark_verified", "mark_unverified", "activate", "suspend")
+    list_select_related = ("user", "nakshatram", "raasi", "education")
+    date_hierarchy = "created_at"
+    list_per_page = 50
+    actions = ("mark_verified", "mark_unverified", "activate", "suspend",
+               "export_csv")
+
+    @admin.display(description="Name")
+    def full_name(self, obj):
+        return obj.full_name or "—"
+
+    @admin.display(description="Age")
+    def age_display(self, obj):
+        return obj.age if obj.age is not None else "—"
+
+    @admin.display(description="Email")
+    def email(self, obj):
+        return obj.user.email
+
+    @admin.display(description="Plan")
+    def plan_display(self, obj):
+        sub = next(
+            (s for s in obj.subscriptions.all()
+             if s.status == "active" and s.is_current), None
+        )
+        return sub.plan.name if sub else "Free"
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("subscriptions__plan")
 
     @admin.action(description="Mark selected profiles as verified")
     def mark_verified(self, request, queryset):
@@ -46,6 +94,30 @@ class ProfileAdmin(admin.ModelAdmin):
     @admin.action(description="Set status: suspended")
     def suspend(self, request, queryset):
         queryset.update(status="suspended")
+
+    @admin.action(description="Export selected to CSV")
+    def export_csv(self, request, queryset):
+        cols = [
+            "regno", "first_name", "surname", "gender", "age", "date_of_birth",
+            "marital_status", "subcaste", "gothram", "region", "country_living",
+            "status", "is_verified", "occupation", "email", "phone",
+            "contact_phone", "plan", "created_at",
+        ]
+        resp = HttpResponse(content_type="text/csv")
+        resp["Content-Disposition"] = (
+            f'attachment; filename="members-{timezone.now():%Y%m%d-%H%M}.csv"'
+        )
+        writer = csv.writer(resp)
+        writer.writerow(cols)
+        for p in queryset.select_related("user").prefetch_related("subscriptions__plan"):
+            writer.writerow([
+                p.regno, p.first_name, p.surname, p.get_gender_display(), p.age,
+                p.date_of_birth, p.marital_status, p.subcaste, p.gothram, p.region,
+                p.country_living, p.status, p.is_verified, p.occupation,
+                p.user.email, p.user.phone, p.contact_phone,
+                self.plan_display(p), p.created_at.isoformat(),
+            ])
+        return resp
 
 
 @admin.register(Shortlist)
