@@ -33,6 +33,7 @@ api_v1 = [
     path("", include("apps.interests.urls")),
     path("", include("apps.reference.urls")),
     path("", include("apps.moderation.urls")),
+    path("", include("apps.messaging.urls")),
 ]
 
 urlpatterns = [

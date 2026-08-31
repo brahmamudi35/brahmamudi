@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -7,6 +8,7 @@ import {
   Heart,
   LogOut,
   Menu,
+  MessageCircle,
   Moon,
   Search,
   ShieldCheck,
@@ -15,6 +17,8 @@ import {
   User as UserIcon,
 } from "lucide-react";
 import { useTheme } from "next-themes";
+
+import { apiFetch } from "@/lib/api";
 
 import { Container } from "@/components/site/container";
 import { Logo } from "@/components/site/logo";
@@ -39,6 +43,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { href: "/search", label: "Search", icon: Search },
   { href: "/interests", label: "Interests", icon: Heart },
+  { href: "/messages", label: "Messages", icon: MessageCircle },
   { href: "/shortlist", label: "Shortlist", icon: Sparkles },
   { href: "/visitors", label: "Visitors", icon: Eye },
 ];
@@ -48,6 +53,18 @@ export function AppHeader() {
   const router = useRouter();
   const pathname = usePathname();
   const { resolvedTheme, setTheme } = useTheme();
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const poll = () =>
+      apiFetch<{ unread: number }>("/conversations/unread-count/")
+        .then((d) => setUnread(d.unread))
+        .catch(() => {});
+    poll();
+    const t = setInterval(poll, 30000);
+    return () => clearInterval(t);
+  }, [user, pathname]);
 
   const navLink = (href: string, label: string, Icon: typeof Search) => {
     const active = pathname === href || pathname.startsWith(href + "/");
@@ -64,6 +81,11 @@ export function AppHeader() {
       >
         <Icon className="size-4" />
         {label}
+        {href === "/messages" && unread > 0 && (
+          <span className="ml-0.5 rounded-full bg-primary px-1.5 text-xs text-primary-foreground">
+            {unread}
+          </span>
+        )}
       </Link>
     );
   };

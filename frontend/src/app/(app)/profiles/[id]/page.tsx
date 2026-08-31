@@ -8,6 +8,7 @@ import {
   BadgeCheck,
   Heart,
   Lock,
+  MessageCircle,
   Phone,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -247,10 +248,20 @@ export default function ProfileDetailPage() {
 
               <Separator />
 
-              <SendInterestDialog
-                profileId={profile.id}
-                name={profile.first_name}
-              />
+              {profile.conversation_id ? (
+                <Button
+                  className="w-full"
+                  render={<Link href={`/messages?c=${profile.conversation_id}`} />}
+                >
+                  <MessageCircle className="size-4" />
+                  Message
+                </Button>
+              ) : (
+                <SendInterestDialog
+                  profileId={profile.id}
+                  name={profile.first_name}
+                />
+              )}
 
               <Button
                 variant="outline"
