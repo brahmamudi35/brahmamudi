@@ -100,7 +100,7 @@ export function AppHeader() {
           <nav className="hidden items-center gap-1 md:flex">
             {NAV.map((n) => navLink(n.href, n.label, n.icon))}
             {navLink("/membership", "Membership", Sparkles)}
-            {user?.is_staff && navLink("/admin", "Moderation", ShieldCheck)}
+            {user?.is_staff && navLink("/admin", "Admin", ShieldCheck)}
           </nav>
         </div>
 
