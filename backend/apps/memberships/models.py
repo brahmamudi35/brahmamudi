@@ -18,7 +18,6 @@ class MembershipPlan(models.Model):
     contact_views = models.PositiveIntegerField(null=True, blank=True)
     interests_per_day = models.PositiveIntegerField(null=True, blank=True)
     can_view_photos = models.BooleanField(default=True)
-    can_chat = models.BooleanField(default=False)
 
     is_active = models.BooleanField(default=True)
     sort_order = models.PositiveSmallIntegerField(default=0)

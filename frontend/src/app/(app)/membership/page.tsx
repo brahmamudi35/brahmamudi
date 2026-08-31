@@ -25,7 +25,6 @@ function planPerks(p: MembershipPlan): string[] {
       ? "Unlimited interests"
       : `${p.interests_per_day} interests / day`,
     p.can_view_photos ? "See all photos" : "Limited photos",
-    ...(p.can_chat ? ["Direct chat"] : []),
     p.duration_months ? `Valid ${p.duration_months} months` : "Free forever",
   ];
 }

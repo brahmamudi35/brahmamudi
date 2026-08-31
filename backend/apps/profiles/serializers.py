@@ -87,7 +87,6 @@ class ProfileDetailSerializer(serializers.ModelSerializer):
     raasi_name = serializers.CharField(source="raasi.name", read_only=True)
     is_shortlisted = serializers.SerializerMethodField()
     contact_unlocked = serializers.SerializerMethodField()
-    conversation_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Profile
@@ -111,16 +110,6 @@ class ProfileDetailSerializer(serializers.ModelSerializer):
 
     def get_contact_unlocked(self, instance) -> bool:
         return self._can_see_contact(instance)
-
-    def get_conversation_id(self, instance):
-        viewer = self._viewer()
-        if not viewer or viewer.pk == instance.pk:
-            return None
-        from apps.messaging.models import Conversation
-
-        lo, hi = sorted((viewer.pk, instance.pk))
-        convo = Conversation.objects.filter(profile_a_id=lo, profile_b_id=hi).first()
-        return convo.pk if convo else None
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

@@ -126,7 +126,6 @@ export interface Profile {
   photos: ProfilePhoto[];
   is_shortlisted?: boolean;
   contact_unlocked?: boolean;
-  conversation_id?: number | null;
 }
 
 export interface ApiError {
@@ -199,7 +198,6 @@ export interface MembershipPlan {
   contact_views: number | null;
   interests_per_day: number | null;
   can_view_photos: boolean;
-  can_chat: boolean;
 }
 
 export interface Subscription {
@@ -298,24 +296,6 @@ export interface ModerationPhoto {
   profile_id: number;
   regno: string;
   profile_name: string;
-}
-
-export interface Message {
-  id: number;
-  conversation: number;
-  sender: number;
-  body: string;
-  created_at: string;
-  read_at: string | null;
-}
-
-export interface Conversation {
-  id: number;
-  other: ProfileSummary;
-  last_message: { body: string; sender: number; created_at: string } | null;
-  unread: number;
-  last_message_at: string | null;
-  created_at: string;
 }
 
 export interface CompletenessSection {

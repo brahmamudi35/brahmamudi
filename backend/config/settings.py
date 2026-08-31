@@ -54,7 +54,6 @@ LOCAL_APPS = [
     "apps.payments",
     "apps.interests",
     "apps.moderation",
-    "apps.messaging",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -179,7 +178,6 @@ REST_FRAMEWORK = {
         "contact_unlock": env("THROTTLE_CONTACT_UNLOCK", default="60/hour"),
         "porutham": env("THROTTLE_PORUTHAM", default="120/hour"),
         "photo_upload": env("THROTTLE_PHOTO_UPLOAD", default="30/hour"),
-        "message_send": env("THROTTLE_MESSAGE_SEND", default="60/min"),
     },
 }
 

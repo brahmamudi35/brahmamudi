@@ -76,12 +76,12 @@ EDUCATION_LEVELS = [
     ("Post Doctorate", "doctorate", 20, 61),
 ]
 
-# name, slug, duration_months, price, contact_views, interests_per_day, can_chat, sort
+# name, slug, duration_months, price, contact_views, interests_per_day, sort
 MEMBERSHIP_PLANS = [
-    ("Free", "free", 0, 0, 0, 5, False, 0),
-    ("Silver", "silver", 6, 1500, 25, 25, False, 1),
-    ("Gold", "gold", 12, 2500, 75, 50, True, 2),
-    ("Platinum", "platinum", 12, 3500, None, None, True, 3),
+    ("Free", "free", 0, 0, 0, 5, 0),
+    ("Silver", "silver", 6, 1500, 25, 25, 1),
+    ("Gold", "gold", 12, 2500, 75, 50, 2),
+    ("Platinum", "platinum", 12, 3500, None, None, 3),
 ]
 
 # legacy_msgcatid, text

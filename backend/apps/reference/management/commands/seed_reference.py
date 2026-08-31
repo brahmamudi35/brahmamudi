@@ -33,7 +33,7 @@ class Command(BaseCommand):
             )
         self.stdout.write(f"EducationLevel: {EducationLevel.objects.count()}")
 
-        for name, slug, months, price, views, per_day, can_chat, sort_order in data.MEMBERSHIP_PLANS:
+        for name, slug, months, price, views, per_day, sort_order in data.MEMBERSHIP_PLANS:
             MembershipPlan.objects.update_or_create(
                 slug=slug,
                 defaults=dict(
@@ -43,7 +43,6 @@ class Command(BaseCommand):
                     price_inr=price,
                     contact_views=views,
                     interests_per_day=per_day,
-                    can_chat=can_chat,
                     can_view_photos=True,
                     sort_order=sort_order,
                     is_active=True,

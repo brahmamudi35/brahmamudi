@@ -8,7 +8,7 @@ class MembershipPlanSerializer(serializers.ModelSerializer):
         model = MembershipPlan
         fields = (
             "id", "name", "slug", "description", "duration_months", "price_inr",
-            "contact_views", "interests_per_day", "can_view_photos", "can_chat",
+            "contact_views", "interests_per_day", "can_view_photos",
         )
 
 

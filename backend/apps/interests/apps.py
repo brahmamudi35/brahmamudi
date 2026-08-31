@@ -5,4 +5,4 @@ class InterestsConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "apps.interests"
     label = "interests"
-    verbose_name = "Interests & messaging"
+    verbose_name = "Interests"

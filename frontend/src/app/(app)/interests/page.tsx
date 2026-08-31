@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Check, Inbox, MessageCircle, Send, X } from "lucide-react";
+import { Check, Inbox, Send, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Container } from "@/components/site/container";
@@ -139,16 +139,6 @@ export default function InterestsPage() {
                         onClick={() => withdraw(it.id)}
                       >
                         Withdraw
-                      </Button>
-                    )}
-                    {it.status === "accepted" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        render={<Link href={`/messages?with=${person.id}`} />}
-                      >
-                        <MessageCircle className="size-4" />
-                        Message
                       </Button>
                     )}
                   </CardContent>
