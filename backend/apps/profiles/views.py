@@ -14,6 +14,7 @@ from rest_framework import (
 )
 from rest_framework.parsers import FormParser, MultiPartParser
 
+from apps.accounts.permissions import IsEmailVerified
 from apps.reference.enums import Gender, ProfileStatus
 from config.throttling import ContactUnlockThrottle, PhotoUploadThrottle, PoruthamThrottle
 
@@ -56,10 +57,16 @@ class ProfileViewSet(viewsets.ModelViewSet):
             return ProfileListSerializer
         return ProfileDetailSerializer
 
+    # actions that change data on the member's behalf need a verified email
+    _VERIFIED_ACTIONS = {"me", "partner_preference", "unlock_contact", "shortlist"}
+
     def get_permissions(self):
         if self.action in {"create", "destroy"}:
             return [permissions.IsAdminUser()]
-        return [permissions.IsAuthenticated()]
+        perms = [permissions.IsAuthenticated()]
+        if self.action in self._VERIFIED_ACTIONS:
+            perms.append(IsEmailVerified())
+        return perms
 
     def get_throttles(self):
         extra = {
@@ -299,7 +306,7 @@ class ProfilePhotoViewSet(
     """Manage the signed-in member's own photos. New uploads await moderation."""
 
     serializer_class = ProfilePhotoUploadSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsEmailVerified]
     parser_classes = [MultiPartParser, FormParser]
     pagination_class = None
 

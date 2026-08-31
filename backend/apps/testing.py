@@ -29,6 +29,7 @@ def _uid() -> int:
 
 def make_user(email: str | None = None, password: str = "s3cret-pass-123", **extra) -> User:
     email = email or f"user{_uid()}@example.com"
+    extra.setdefault("email_verified", True)  # the common case; override for gate tests
     return User.objects.create_user(email=email, password=password, **extra)
 
 

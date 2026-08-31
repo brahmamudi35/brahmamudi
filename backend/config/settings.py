@@ -215,6 +215,10 @@ GOOGLE_OAUTH_CLIENT_ID = env("GOOGLE_OAUTH_CLIENT_ID", default="")
 # approve them in the admin.
 AUTO_APPROVE_PHOTOS = env.bool("AUTO_APPROVE_PHOTOS", default=True)
 
+# Require a confirmed email before a member can create/edit a profile, send an
+# interest, upload a photo or start a payment. Reads are always allowed.
+REQUIRE_EMAIL_VERIFICATION = env.bool("REQUIRE_EMAIL_VERIFICATION", default=True)
+
 
 # PayU payment gateway
 PAYU_ENVIRONMENT = env("PAYU_ENVIRONMENT", default="staging")  # staging | production

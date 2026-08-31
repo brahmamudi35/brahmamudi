@@ -2,6 +2,7 @@ from django.db import models, transaction
 from django.utils import timezone
 from rest_framework import decorators, mixins, permissions, response, viewsets
 
+from apps.accounts.permissions import IsEmailVerified
 from config.throttling import InterestCreateThrottle
 
 from . import emails, services
@@ -25,6 +26,13 @@ class InterestViewSet(
     mixins.CreateModelMixin, viewsets.GenericViewSet,
 ):
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        # sending / responding to interests acts on another member - needs a
+        # verified email; reading your boxes does not.
+        if self.action in {"create", "accept", "decline", "withdraw"}:
+            return [permissions.IsAuthenticated(), IsEmailVerified()]
+        return super().get_permissions()
 
     def get_serializer_class(self):
         return InterestCreateSerializer if self.action == "create" else InterestSerializer

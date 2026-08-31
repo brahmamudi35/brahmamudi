@@ -8,6 +8,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import permissions, views
 from rest_framework.response import Response
 
+from apps.accounts.permissions import IsEmailVerified
 from apps.memberships.models import MembershipPlan
 
 from . import services
@@ -18,7 +19,7 @@ from .models import PaymentTransaction
 class PayUInitiateView(views.APIView):
     """Return the signed form fields the frontend POSTs to PayU."""
 
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsEmailVerified]
 
     def post(self, request):
         profile = getattr(request.user, "profile", None)
