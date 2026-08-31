@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   BadgeCheck,
+  FileText,
   Heart,
   Lock,
   Phone,
@@ -304,6 +305,42 @@ export default function ProfileDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          {profile.horoscope && profile.horoscope.status !== "none" && (
+            <Card>
+              <CardContent className="pt-6">
+                <h2 className="flex items-center gap-2 font-medium">
+                  <FileText className="size-4 text-primary" />
+                  Horoscope
+                </h2>
+                {profile.horoscope.locked ? (
+                  <p className="mt-3 flex items-center gap-2 rounded-lg bg-muted/60 p-3 text-sm text-muted-foreground">
+                    <Lock className="size-4" />
+                    Unlock this profile to view the horoscope.
+                  </p>
+                ) : profile.horoscope.url ? (
+                  <Button
+                    variant="outline"
+                    className="mt-3 w-full"
+                    render={
+                      <a
+                        href={profile.horoscope.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      />
+                    }
+                  >
+                    <FileText className="size-4" />
+                    View {profile.horoscope.is_pdf ? "PDF" : "image"}
+                  </Button>
+                ) : (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    Awaiting review.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <PoruthamCard profileId={profile.id} />
         </div>

@@ -25,11 +25,12 @@ import { useReferenceData } from "@/lib/reference";
 import type { ModerationPhoto, ModerationSummary, Paginated } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Tab = "guided" | "directory" | "photos";
+type Tab = "guided" | "directory" | "photos" | "horoscopes";
 const TABS: { id: Tab; label: string }[] = [
   { id: "guided", label: "Guided search" },
   { id: "directory", label: "Directory" },
   { id: "photos", label: "Photos" },
+  { id: "horoscopes", label: "Horoscopes" },
 ];
 
 const fieldCls =
@@ -60,9 +61,10 @@ export default function AdminModerationPage() {
       <h1 className="font-heading text-2xl font-semibold">Admin</h1>
 
       {summary && (
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
           <Stat label="Unverified" value={summary.unverified_profiles} />
           <Stat label="Pending photos" value={summary.pending_photos} />
+          <Stat label="Pending horoscopes" value={summary.pending_horoscopes} />
           <Stat label="Suspended" value={summary.suspended_profiles} />
           <Stat label="New today" value={summary.profiles_created_today} />
         </div>
@@ -89,6 +91,7 @@ export default function AdminModerationPage() {
         {tab === "guided" && <GuidedSearch onChange={loadSummary} />}
         {tab === "directory" && <DirectoryTab onChange={loadSummary} />}
         {tab === "photos" && <PhotosTab onChange={loadSummary} />}
+        {tab === "horoscopes" && <HoroscopesTab onChange={loadSummary} />}
       </div>
     </Container>
   );
@@ -356,6 +359,89 @@ function PhotosTab({ onChange }: { onChange: () => void }) {
                 className="flex-1"
                 disabled={busy === p.id}
                 onClick={() => reject(p.id)}
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+interface ModHoroscope {
+  id: number;
+  file: string;
+  original_name: string;
+  is_pdf: boolean;
+  profile_id: number;
+  regno: string;
+  profile_name: string;
+}
+
+function HoroscopesTab({ onChange }: { onChange: () => void }) {
+  const [rows, setRows] = useState<ModHoroscope[] | null>(null);
+  const [busy, setBusy] = useState<number | null>(null);
+
+  const load = useCallback(() => {
+    setRows(null);
+    apiFetch<Paginated<ModHoroscope>>("/moderation/horoscopes/?filter=pending")
+      .then((d) => setRows(d.results))
+      .catch(handleApiError);
+  }, []);
+  useEffect(load, [load]);
+
+  async function act(id: number, method: "approve" | "reject") {
+    setBusy(id);
+    try {
+      if (method === "approve")
+        await apiFetch(`/moderation/horoscopes/${id}/approve/`, { method: "POST" });
+      else await apiFetch(`/moderation/horoscopes/${id}/`, { method: "DELETE" });
+      setRows((r) => r?.filter((x) => x.id !== id) ?? null);
+      onChange();
+    } catch (err) {
+      handleApiError(err);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  if (!rows) return <Spinner className="text-primary" />;
+  if (rows.length === 0)
+    return (
+      <p className="py-8 text-center text-sm text-muted-foreground">
+        No horoscopes waiting for review.
+      </p>
+    );
+
+  return (
+    <div className="space-y-2">
+      {rows.map((h) => (
+        <Card key={h.id}>
+          <CardContent className="flex flex-wrap items-center gap-3 py-3">
+            <a
+              href={h.file}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex min-w-0 flex-1 items-center gap-2 hover:underline"
+            >
+              <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-medium">
+                {h.is_pdf ? "PDF" : "IMG"}
+              </span>
+              <span className="truncate text-sm">
+                {h.profile_name || h.regno} · {h.original_name || "horoscope"}
+              </span>
+            </a>
+            <div className="flex gap-1.5">
+              <Button size="sm" disabled={busy === h.id} onClick={() => act(h.id, "approve")}>
+                <Check className="size-4" /> Approve
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy === h.id}
+                onClick={() => act(h.id, "reject")}
               >
                 <Trash2 className="size-4" />
               </Button>

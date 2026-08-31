@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
+import { HoroscopeManager } from "@/components/onboarding/horoscope-manager";
 import { PhotoManager } from "@/components/onboarding/photo-manager";
 import { Container } from "@/components/site/container";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,15 @@ export default function PhotosPage() {
         </CardHeader>
         <CardContent>
           <PhotoManager />
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="font-heading text-xl">Horoscope</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <HoroscopeManager />
         </CardContent>
       </Card>
     </Container>

@@ -126,6 +126,12 @@ export interface Profile {
   photos: ProfilePhoto[];
   is_shortlisted?: boolean;
   contact_unlocked?: boolean;
+  horoscope?: {
+    status: "none" | "pending" | "approved" | "available";
+    locked: boolean;
+    url: string | null;
+    is_pdf: boolean;
+  };
 }
 
 export interface ApiError {
@@ -260,6 +266,7 @@ export interface ModerationSummary {
   unverified_profiles: number;
   suspended_profiles: number;
   pending_photos: number;
+  pending_horoscopes: number;
   profiles_created_today: number;
 }
 
