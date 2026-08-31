@@ -20,7 +20,7 @@ import {
 
 const START: MemberFilters = { ...BLANK_FILTERS, preset: "all" };
 
-const STEPS = ["who", "age", "subcaste", "region", "marital", "plan", "extras"] as const;
+const STEPS = ["who", "age", "subcaste", "region", "marital", "extras"] as const;
 type StepId = (typeof STEPS)[number];
 
 export function GuidedSearch({ onChange }: { onChange: () => void }) {
@@ -83,8 +83,8 @@ export function GuidedSearch({ onChange }: { onChange: () => void }) {
         )}
 
         {id === "subcaste" && (
-          <Question title="Any sub-caste preference?">
-            <Chips
+          <Question title="Any sub-caste preference?" hint="Pick one or more, or leave on Any.">
+            <MultiChips
               options={enums?.subcaste}
               value={f.subcaste}
               onChange={(v) => set({ subcaste: v })}
@@ -93,8 +93,8 @@ export function GuidedSearch({ onChange }: { onChange: () => void }) {
         )}
 
         {id === "region" && (
-          <Question title="Which region?">
-            <Chips
+          <Question title="Which region?" hint="Pick one or more, or leave on Any.">
+            <MultiChips
               options={enums?.region}
               value={f.region}
               onChange={(v) => set({ region: v })}
@@ -108,21 +108,6 @@ export function GuidedSearch({ onChange }: { onChange: () => void }) {
               options={enums?.marital_status}
               value={f.marital_status}
               onChange={(v) => set({ marital_status: v })}
-            />
-          </Question>
-        )}
-
-        {id === "plan" && (
-          <Question title="Membership plan?">
-            <Chips
-              options={[
-                { value: "none", label: "No paid plan" },
-                { value: "silver", label: "Silver" },
-                { value: "gold", label: "Gold" },
-                { value: "platinum", label: "Platinum" },
-              ]}
-              value={f.plan}
-              onChange={(v) => set({ plan: v })}
             />
           </Question>
         )}
@@ -210,10 +195,9 @@ function Results({
     filters.age_min || filters.age_max
       ? `${filters.age_min || "any"}–${filters.age_max || "any"} yrs`
       : null,
-    filters.subcaste,
-    filters.region,
+    filters.subcaste.join(" / "),
+    filters.region.join(" / "),
     filters.marital_status,
-    filters.plan === "none" ? "no paid plan" : filters.plan,
     filters.is_verified === "true" ? "verified" : filters.is_verified === "false" ? "unverified" : null,
     filters.has_photo === "yes" ? "with photo" : filters.has_photo === "no" ? "no photo" : filters.has_photo === "pending" ? "photo pending" : null,
     filters.status,
@@ -333,6 +317,9 @@ function Choose({
   );
 }
 
+/** "Goldsmith (Ausula / Swarnakara)" -> "Goldsmith" */
+export const shortLabel = (s: string) => s.split(" (")[0].trim();
+
 function Chips({
   options,
   value,
@@ -359,7 +346,43 @@ function Chips({
             active={value === String(o.value)}
             onClick={() => onChange(String(o.value))}
           >
-            {o.label}
+            {shortLabel(o.label)}
+          </Chip>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function MultiChips({
+  options,
+  value,
+  onChange,
+  label,
+}: {
+  options?: Choice[];
+  value: string[];
+  onChange: (v: string[]) => void;
+  label?: string;
+}) {
+  const toggle = (v: string) =>
+    onChange(value.includes(v) ? value.filter((x) => x !== v) : [...value, v]);
+  return (
+    <div>
+      {label && (
+        <p className="mb-1 text-xs font-medium text-muted-foreground">{label}</p>
+      )}
+      <div className="flex flex-wrap gap-1.5">
+        <Chip active={value.length === 0} onClick={() => onChange([])}>
+          Any
+        </Chip>
+        {options?.map((o) => (
+          <Chip
+            key={String(o.value)}
+            active={value.includes(String(o.value))}
+            onClick={() => toggle(String(o.value))}
+          >
+            {shortLabel(o.label)}
           </Chip>
         ))}
       </div>

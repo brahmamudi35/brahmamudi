@@ -91,6 +91,19 @@ class ModerationDirectoryFilterTests(ApiTestCase):
         self.assertEqual(self._ids("filter=all&plan=gold"), {self.gold_f.pk})
         self.assertIn(self.young_m.pk, self._ids("filter=all&plan=none"))
 
+    def test_subcaste_accepts_multiple_values(self):
+        from apps.reference.enums import SubCaste
+
+        gold = make_profile(gender=Gender.MALE, subcaste=SubCaste.GOLDSMITH)
+        carp = make_profile(gender=Gender.MALE, subcaste=SubCaste.CARPENTER)
+        black = make_profile(gender=Gender.MALE, subcaste=SubCaste.BLACKSMITH)
+        ids = self._ids(
+            f"filter=all&subcaste={SubCaste.GOLDSMITH}&subcaste={SubCaste.CARPENTER}"
+        )
+        self.assertIn(gold.pk, ids)
+        self.assertIn(carp.pk, ids)
+        self.assertNotIn(black.pk, ids)
+
     def test_search(self):
         self.assertEqual(self._ids("filter=all&search=Architect"), {self.gold_f.pk})
         self.assertEqual(self._ids(f"filter=all&search={self.young_m.regno}"),

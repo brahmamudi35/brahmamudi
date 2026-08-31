@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Check, Search, Trash2 } from "lucide-react";
 
-import { GuidedSearch } from "@/components/admin/guided-search";
+import { GuidedSearch, MultiChips } from "@/components/admin/guided-search";
 import { MemberRow } from "@/components/admin/member-row";
 import {
   BLANK_FILTERS,
@@ -145,8 +145,6 @@ function DirectoryTab({ onChange }: { onChange: () => void }) {
             <option value="all">All members</option>
           </select>
           <Select v={f.gender} on={set("gender")} label="Any gender" opts={enums?.gender} />
-          <Select v={f.subcaste} on={set("subcaste")} label="Any sub-caste" opts={enums?.subcaste} />
-          <Select v={f.region} on={set("region")} label="Any region" opts={enums?.region} />
           <Select v={f.marital_status} on={set("marital_status")} label="Any marital status" opts={enums?.marital_status} />
           <Select v={f.status} on={set("status")} label="Any status" opts={enums?.profile_status} />
           <select value={f.is_verified} onChange={set("is_verified")} className={fieldCls}>
@@ -182,6 +180,18 @@ function DirectoryTab({ onChange }: { onChange: () => void }) {
             className={fieldCls}
           />
         </div>
+        <MultiChips
+          label="Sub-caste"
+          options={enums?.subcaste}
+          value={f.subcaste}
+          onChange={(v) => setF((s) => ({ ...s, subcaste: v }))}
+        />
+        <MultiChips
+          label="Region"
+          options={enums?.region}
+          value={f.region}
+          onChange={(v) => setF((s) => ({ ...s, region: v }))}
+        />
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{rows ? `${count.toLocaleString()} members` : "…"}</span>
           {dirty && (

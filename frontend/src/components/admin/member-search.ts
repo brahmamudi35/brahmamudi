@@ -12,8 +12,8 @@ export interface MemberFilters {
   preset: Preset;
   search: string;
   gender: string;
-  subcaste: string;
-  region: string;
+  subcaste: string[];
+  region: string[];
   marital_status: string;
   status: string;
   is_verified: string;
@@ -27,8 +27,8 @@ export const BLANK_FILTERS: MemberFilters = {
   preset: "unverified",
   search: "",
   gender: "",
-  subcaste: "",
-  region: "",
+  subcaste: [],
+  region: [],
   marital_status: "",
   status: "",
   is_verified: "",
@@ -38,9 +38,9 @@ export const BLANK_FILTERS: MemberFilters = {
   age_max: "",
 };
 
-const KEYS = [
-  "gender", "subcaste", "region", "marital_status", "status",
-  "is_verified", "plan", "has_photo", "age_min", "age_max",
+const SINGLE = [
+  "gender", "marital_status", "status", "is_verified", "plan",
+  "has_photo", "age_min", "age_max",
 ] as const;
 
 export function buildMemberQuery(
@@ -53,7 +53,9 @@ export function buildMemberQuery(
     offset: String(offset),
   });
   if (f.search.trim()) p.set("search", f.search.trim());
-  for (const k of KEYS) if (f[k]) p.set(k, f[k]);
+  for (const k of SINGLE) if (f[k]) p.set(k, f[k]);
+  for (const v of f.subcaste) p.append("subcaste", v);
+  for (const v of f.region) p.append("region", v);
   return p.toString();
 }
 
