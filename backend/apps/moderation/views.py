@@ -7,11 +7,13 @@ off). Everything here is IsAdminUser.
 
 from django.db.models import Count, Q
 from django.utils import timezone
-from rest_framework import decorators, mixins, permissions, response, viewsets
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import decorators, filters, mixins, permissions, response, viewsets
 
 from apps.profiles.models import Profile, ProfilePhoto
 from apps.reference.enums import ProfileStatus
 
+from .filters import ModerationProfileFilter
 from .serializers import ModerationPhotoSerializer, ModerationProfileSerializer
 
 _PHOTO_COUNTS = {
@@ -27,23 +29,37 @@ class ModerationProfileViewSet(
 ):
     permission_classes = [permissions.IsAdminUser]
     serializer_class = ModerationProfileSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = ModerationProfileFilter
+    search_fields = [
+        "regno", "first_name", "surname", "user__email", "user__phone",
+        "contact_phone", "parent_phone", "occupation", "company", "gothram",
+    ]
+    ordering_fields = ["created_at", "date_of_birth", "regno", "first_name"]
+    ordering = ["-created_at"]
+
+    # `filter=` presets for the moderation queues; the granular filters
+    # (gender, subcaste, age, plan, …) come from ModerationProfileFilter and
+    # combine with whichever preset is active.
+    _PRESETS = {
+        "unverified": lambda qs: qs.filter(is_verified=False).exclude(
+            status=ProfileStatus.SUSPENDED
+        ),
+        "verified": lambda qs: qs.filter(is_verified=True),
+        "suspended": lambda qs: qs.filter(status=ProfileStatus.SUSPENDED),
+        "all": lambda qs: qs,
+    }
 
     def get_queryset(self):
         qs = (
             Profile.objects.select_related("user")
+            .prefetch_related("subscriptions__plan")
             .annotate(**_PHOTO_COUNTS)
-            .order_by("-created_at")
         )
         if self.action != "list":
             return qs
-        flt = self.request.query_params.get("filter", "unverified")
-        if flt == "unverified":
-            return qs.filter(is_verified=False).exclude(status=ProfileStatus.SUSPENDED)
-        if flt == "suspended":
-            return qs.filter(status=ProfileStatus.SUSPENDED)
-        if flt == "verified":
-            return qs.filter(is_verified=True)
-        return qs
+        preset = self._PRESETS.get(self.request.query_params.get("filter", "all"))
+        return preset(qs) if preset else qs
 
     def _set(self, request, **fields):
         profile = self.get_object()

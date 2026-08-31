@@ -63,6 +63,48 @@ class ModerationProfileTests(ApiTestCase):
         self.assertEqual(data["suspended_profiles"], 1)
 
 
+class ModerationDirectoryFilterTests(ApiTestCase):
+    def setUp(self):
+        super().setUp()
+        from datetime import date
+
+        from apps.testing import give_subscription
+
+        self.client.force_authenticate(make_user(is_staff=True))
+        self.young_m = make_profile(gender=Gender.MALE, first_name="Arjun",
+                                    date_of_birth=date(2001, 1, 1))
+        self.gold_f = make_profile(gender=Gender.FEMALE, first_name="Meena",
+                                   date_of_birth=date(1990, 1, 1),
+                                   occupation="Architect")
+        give_subscription(self.gold_f, "gold")
+
+    def _ids(self, query):
+        return {r["id"] for r in
+                self.client.get(f"/api/v1/moderation/profiles/?{query}").data["results"]}
+
+    def test_gender_and_age_filters(self):
+        self.assertEqual(self._ids("filter=all&gender=M"), {self.young_m.pk})
+        self.assertIn(self.young_m.pk, self._ids("filter=all&age_max=27"))
+        self.assertNotIn(self.gold_f.pk, self._ids("filter=all&age_max=27"))
+
+    def test_plan_filter(self):
+        self.assertEqual(self._ids("filter=all&plan=gold"), {self.gold_f.pk})
+        self.assertIn(self.young_m.pk, self._ids("filter=all&plan=none"))
+
+    def test_search(self):
+        self.assertEqual(self._ids("filter=all&search=Architect"), {self.gold_f.pk})
+        self.assertEqual(self._ids(f"filter=all&search={self.young_m.regno}"),
+                         {self.young_m.pk})
+
+    def test_serializer_exposes_plan_and_contact(self):
+        row = next(r for r in
+                   self.client.get("/api/v1/moderation/profiles/?filter=all").data["results"]
+                   if r["id"] == self.gold_f.pk)
+        self.assertEqual(row["plan"], "Gold")
+        self.assertIn("phone", row)
+        self.assertIn("region", row)
+
+
 class ModerationPhotoTests(ApiTestCase):
     def test_pending_queue_approve_and_reject(self):
         owner = make_profile(gender=Gender.FEMALE)
