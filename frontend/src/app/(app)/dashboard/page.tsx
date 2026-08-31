@@ -8,6 +8,7 @@ import {
   Clock,
   ImageIcon,
   MailWarning,
+  ShieldCheck,
   Sparkles,
   UserRoundPen,
 } from "lucide-react";
@@ -27,7 +28,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { apiFetch } from "@/lib/api";
+import { API_BASE, apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { Completeness, Profile, SuggestedProfile } from "@/lib/types";
 
@@ -51,47 +52,96 @@ export default function DashboardPage() {
       .catch(() => {});
   }, [user?.has_profile]);
 
+  // A staff account with no member profile is here to administer, not to
+  // build a bio-data — show the admin shortcut instead of the member prompts.
+  const staffOnly = !!user?.is_staff && !user?.has_profile;
+
   return (
     <Container className="py-8">
       <h1 className="font-heading text-3xl font-semibold">
         Namaste{user?.full_name ? `, ${user.full_name.split(" ")[0]}` : ""}
       </h1>
 
-      {user && !user.email_verified && <VerifyEmailBanner email={user.email} />}
+      {user && !user.email_verified && !staffOnly && (
+        <VerifyEmailBanner email={user.email} />
+      )}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          {loading ? (
-            <Skeleton className="h-48 w-full" />
-          ) : !user?.has_profile ? (
-            <NoProfileCard />
-          ) : (
-            <ProfileCard profile={profile} />
-          )}
-        </div>
+      {staffOnly ? (
+        <StaffPanel />
+      ) : (
+        <>
+          <div className="mt-6 grid gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              {loading ? (
+                <Skeleton className="h-48 w-full" />
+              ) : !user?.has_profile ? (
+                <NoProfileCard />
+              ) : (
+                <ProfileCard profile={profile} />
+              )}
+            </div>
 
-        <div className="space-y-4">
-          {user?.has_profile && completeness && !completeness.complete && (
-            <CompletenessCard data={completeness} />
-          )}
-          <QuickLink
-            href="/onboarding"
-            icon={UserRoundPen}
-            title={user?.has_profile ? "Edit profile" : "Create profile"}
-            desc="Bio-data, horoscope, family, preferences"
-          />
-          <QuickLink
-            href="/profile/photos"
-            icon={ImageIcon}
-            title="Photos"
-            desc="Upload and manage your photos"
-            disabled={!user?.has_profile}
-          />
-        </div>
-      </div>
+            <div className="space-y-4">
+              {user?.has_profile && completeness && !completeness.complete && (
+                <CompletenessCard data={completeness} />
+              )}
+              <QuickLink
+                href="/onboarding"
+                icon={UserRoundPen}
+                title={user?.has_profile ? "Edit profile" : "Create profile"}
+                desc="Bio-data, horoscope, family, preferences"
+              />
+              <QuickLink
+                href="/profile/photos"
+                icon={ImageIcon}
+                title="Photos"
+                desc="Upload and manage your photos"
+                disabled={!user?.has_profile}
+              />
+            </div>
+          </div>
 
-      {user?.has_profile && <MatchesStrip />}
+          {user?.has_profile && <MatchesStrip />}
+        </>
+      )}
     </Container>
+  );
+}
+
+function StaffPanel() {
+  return (
+    <div className="mt-6 grid gap-4 sm:grid-cols-2">
+      <QuickLink
+        href="/admin"
+        icon={ShieldCheck}
+        title="Admin"
+        desc="Guided search, member directory, photo moderation"
+      />
+      <QuickLink
+        href="/search"
+        icon={Sparkles}
+        title="Browse members"
+        desc="The full member search"
+      />
+      <a
+        href={`${API_BASE.replace(/\/api\/v1\/?$/, "")}/admin/`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="sm:col-span-2"
+      >
+        <Card className="transition-colors hover:border-primary/40 hover:bg-accent/30">
+          <CardContent className="flex items-center gap-3 py-4">
+            <ChevronRight className="size-5 text-primary" />
+            <div className="flex-1">
+              <p className="text-sm font-medium">Django admin</p>
+              <p className="text-xs text-muted-foreground">
+                Full data access, bulk actions, CSV export (opens the backend)
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </a>
+    </div>
   );
 }
 
