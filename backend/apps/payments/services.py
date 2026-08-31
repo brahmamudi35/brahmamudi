@@ -147,6 +147,14 @@ def activate_membership(txn: PaymentTransaction) -> None:
         profile.expires_on = expires
     profile.save(update_fields=["status", "expires_on"])
 
+    from apps.notifications.services import notify
+
+    notify(
+        profile, "subscription_activated",
+        text=f"Your {txn.plan.name} membership is active",
+        url="/membership", data={"plan": txn.plan.slug},
+    )
+
 
 def apply_gateway_response(data: dict) -> PaymentTransaction:
     """Idempotently record a PayU success/failure callback and update the txn."""

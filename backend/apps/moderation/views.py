@@ -72,7 +72,12 @@ class ModerationProfileViewSet(
 
     @decorators.action(detail=True, methods=["post"])
     def verify(self, request, pk=None):
-        return self._set(request, is_verified=True)
+        resp = self._set(request, is_verified=True)
+        from apps.notifications.services import notify
+
+        notify(self.get_object(), "profile_verified",
+               text="Your profile is now verified", url="/dashboard")
+        return resp
 
     @decorators.action(detail=True, methods=["post"])
     def unverify(self, request, pk=None):
@@ -105,7 +110,21 @@ class ModerationPhotoViewSet(
         photo = self.get_object()
         photo.is_approved = True
         photo.save(update_fields=["is_approved"])
+        from apps.notifications.services import notify
+
+        notify(photo.profile, "photo_approved",
+               text="Your photo was approved", url="/profile/photos")
         return response.Response(self.get_serializer(photo).data)
+
+    def perform_destroy(self, instance):
+        profile = instance.profile
+        instance.image.delete(save=False)
+        instance.delete()
+        from apps.notifications.services import notify
+
+        notify(profile, "photo_rejected",
+               text="A photo you uploaded was removed by our team",
+               url="/profile/photos")
 
 
 @extend_schema(responses={200: OpenApiTypes.OBJECT})

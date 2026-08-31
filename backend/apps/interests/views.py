@@ -3,6 +3,7 @@ from django.utils import timezone
 from rest_framework import decorators, mixins, permissions, response, viewsets
 
 from apps.accounts.permissions import IsEmailVerified
+from apps.notifications.services import notify
 from config.throttling import InterestCreateThrottle
 
 from . import emails, services
@@ -59,6 +60,11 @@ class InterestViewSet(
     def perform_create(self, serializer):
         interest = serializer.save(sender=self.request.user.profile)
         transaction.on_commit(lambda: emails.notify_interest_received(interest))
+        notify(
+            interest.receiver, "interest_received", actor=interest.sender,
+            text=f"{interest.sender.first_name or 'A member'} expressed interest in you",
+            url="/interests", data={"interest_id": interest.id},
+        )
 
     def _respond(self, request, pk, new_status):
         interest = self.get_object()
@@ -68,6 +74,13 @@ class InterestViewSet(
         interest.responded_at = timezone.now()
         interest.save(update_fields=["status", "responded_at"])
         transaction.on_commit(lambda: emails.notify_interest_response(interest))
+        if new_status in (Interest.Status.ACCEPTED, Interest.Status.DECLINED):
+            verb = "accepted" if new_status == Interest.Status.ACCEPTED else "declined"
+            notify(
+                interest.sender, f"interest_{verb}", actor=interest.receiver,
+                text=f"{interest.receiver.first_name or 'A member'} {verb} your interest",
+                url="/interests", data={"interest_id": interest.id},
+            )
         return response.Response(InterestSerializer(interest).data)
 
     @decorators.action(detail=False)

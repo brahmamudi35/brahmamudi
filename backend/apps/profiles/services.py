@@ -62,6 +62,14 @@ def record_view(viewer: Profile, viewed: Profile) -> None:
                 view_count=F("view_count") + 1, last_viewed_at=timezone.now()
             )
 
+    from apps.notifications.services import notify
+
+    notify(
+        viewed, "profile_view", actor=viewer,
+        text=f"{viewer.first_name or 'Someone'} viewed your profile",
+        url=f"/profiles/{viewer.pk}", dedupe_hours=24,
+    )
+
 
 def _best_active_subscription(profile: Profile) -> Subscription | None:
     subs = [
