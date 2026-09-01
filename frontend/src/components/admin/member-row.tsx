@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BadgeCheck, Ban, Check, RotateCcw, X } from "lucide-react";
+import { BadgeCheck, Ban, Check, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ export function MemberRow({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <Link
-              href={`/profiles/${p.id}`}
+              href={`/admin/members/${p.id}`}
               className="truncate font-medium hover:underline"
             >
               {p.full_name || p.regno}
@@ -50,6 +50,14 @@ export function MemberRow({
           )}
         </div>
         <div className="flex gap-1.5">
+          <Button
+            size="sm"
+            variant="outline"
+            render={<Link href={`/admin/members/${p.id}`} />}
+          >
+            <SlidersHorizontal className="size-4" />
+            Manage
+          </Button>
           <Button
             size="sm"
             variant={p.is_verified ? "outline" : "default"}

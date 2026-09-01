@@ -6,6 +6,7 @@ export interface User {
   phone: string;
   full_name: string;
   is_staff: boolean;
+  is_superuser: boolean;
   email_verified: boolean;
   must_reset_password: boolean;
   date_joined: string;
@@ -263,11 +264,98 @@ export interface InterestQuota {
 }
 
 export interface ModerationSummary {
+  total_members: number;
   unverified_profiles: number;
   suspended_profiles: number;
   pending_photos: number;
   pending_horoscopes: number;
   profiles_created_today: number;
+  paid_members: number;
+  payments_succeeded_this_month: number;
+}
+
+export interface ModerationSubscription {
+  id: number;
+  plan: string;
+  plan_slug: string;
+  status: string;
+  started_on: string | null;
+  expires_on: string | null;
+  is_current: boolean;
+  is_legacy: boolean;
+  payment_id: number | null;
+  created_at: string;
+}
+
+export interface ModerationPayment {
+  id: number;
+  txnid: string;
+  mihpayid: string;
+  profile_id: number | null;
+  regno: string | null;
+  profile_name: string | null;
+  plan: string | null;
+  amount: string;
+  status: string;
+  environment: string;
+  mode: string;
+  email: string;
+  phone: string;
+  error_message: string;
+  is_legacy: boolean;
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface ModerationProfileDetail extends ModerationProfile {
+  surname: string;
+  mother_tongue: string;
+  height_cm: number | null;
+  complexion: string;
+  food_habit: string;
+  physically_challenged: boolean;
+  gothram: string;
+  company: string;
+  annual_income_text: string;
+  native_district: string;
+  address: string;
+  father_name: string;
+  father_occupation: string;
+  mother_name: string;
+  mother_occupation: string;
+  family_background: string;
+  about: string;
+  expectations: string;
+  willing_to_relocate_abroad: boolean | null;
+  contact_phone: string;
+  parent_phone: string;
+  contact_notes: string;
+  email_verified: boolean;
+  last_login: string | null;
+  date_joined: string;
+  photos: {
+    id: number;
+    image: string;
+    is_primary: boolean;
+    is_approved: boolean;
+    uploaded_at: string;
+  }[];
+  horoscope: {
+    id: number;
+    file: string;
+    is_pdf: boolean;
+    is_approved: boolean;
+    original_name: string;
+  } | null;
+  subscriptions: ModerationSubscription[];
+  completeness: number;
+  activity: {
+    interests_sent: number;
+    interests_received: number;
+    profile_views_received: number;
+    shortlisted_by: number;
+    contacts_unlocked: number;
+  };
 }
 
 export interface ModerationProfile {

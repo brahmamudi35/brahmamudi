@@ -7,6 +7,7 @@ import { Check, Search, Trash2 } from "lucide-react";
 
 import { GuidedSearch, MultiChips } from "@/components/admin/guided-search";
 import { MemberRow } from "@/components/admin/member-row";
+import { PaymentsTable } from "@/components/admin/payments-table";
 import {
   BLANK_FILTERS,
   buildMemberQuery,
@@ -25,10 +26,11 @@ import { useReferenceData } from "@/lib/reference";
 import type { ModerationPhoto, ModerationSummary, Paginated } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Tab = "guided" | "directory" | "photos" | "horoscopes";
+type Tab = "guided" | "directory" | "payments" | "photos" | "horoscopes";
 const TABS: { id: Tab; label: string }[] = [
   { id: "guided", label: "Guided search" },
   { id: "directory", label: "Directory" },
+  { id: "payments", label: "Payments" },
   { id: "photos", label: "Photos" },
   { id: "horoscopes", label: "Horoscopes" },
 ];
@@ -61,7 +63,9 @@ export default function AdminModerationPage() {
       <h1 className="font-heading text-2xl font-semibold">Admin</h1>
 
       {summary && (
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+          <Stat label="Members" value={summary.total_members} />
+          <Stat label="Paid members" value={summary.paid_members} />
           <Stat label="Unverified" value={summary.unverified_profiles} />
           <Stat label="Pending photos" value={summary.pending_photos} />
           <Stat label="Pending horoscopes" value={summary.pending_horoscopes} />
@@ -90,6 +94,7 @@ export default function AdminModerationPage() {
       <div className="mt-6">
         {tab === "guided" && <GuidedSearch onChange={loadSummary} />}
         {tab === "directory" && <DirectoryTab onChange={loadSummary} />}
+        {tab === "payments" && <PaymentsTable />}
         {tab === "photos" && <PhotosTab onChange={loadSummary} />}
         {tab === "horoscopes" && <HoroscopesTab onChange={loadSummary} />}
       </div>

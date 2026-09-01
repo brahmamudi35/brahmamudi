@@ -25,6 +25,16 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
+### Two admin tiers
+
+* **Super admin** — the Django admin at `/<DJANGO_ADMIN_PATH>` (default `admin/`).
+  Superusers only (`is_superuser`); full model access + the audit log. Set
+  `DJANGO_ADMIN_PATH` to something non-obvious in production. Failed logins are
+  rate-limited per IP (`ADMIN_LOGIN_MAX_ATTEMPTS` / `ADMIN_LOGIN_LOCKOUT_SECONDS`).
+* **Admin** — staff (`is_staff`) run the member desk from the frontend `/admin`
+  page, backed by the `moderation` API: moderation queues, member directory,
+  editing a member's bio-data, comping a membership, and the payment ledger.
+
 To use PostgreSQL, set `DATABASE_URL` in `.env`:
 
 ```
@@ -41,14 +51,14 @@ DATABASE_URL=postgres://brahmamudi:brahmamudi@localhost:5432/brahmamudi
 | `memberships` | `MembershipPlan`, `Subscription` |
 | `payments` | `PayUCredential`, `PaymentTransaction`, PayU hashing + return/webhook |
 | `interests` | `InterestTemplate`, `Interest`, notification emails, daily send quota |
-| `moderation` | Staff-only profile / photo moderation + member-directory API |
+| `moderation` | Staff member desk: moderation, directory, profile edit, comp-a-plan, payment ledger |
 | `notifications` | In-app `Notification` feed + triggers (interests, views, moderation, payment) |
 | `alerts` | `SavedSearch` + the `send_search_alerts` command |
 
 ## Tests
 
 ```bash
-python manage.py test              # ~94 tests, SQLite, no extra services
+python manage.py test              # ~103 tests, SQLite, no extra services
 ```
 
 ## Scheduled jobs
@@ -107,9 +117,15 @@ Base path `/api/v1/`.
 | GET/POST | `interests/?box=sent\|received` | POST notifies the receiver by email |
 | GET | `interests/quota/` | sender's daily interest allowance / remaining |
 | POST | `interests/{id}/accept\|decline\|withdraw/` | accept/decline email the sender |
-| GET | `moderation/summary/` | staff: queue counts |
+| GET | `moderation/summary/` | staff: queue + desk counts (`total_members`, `paid_members`, `payments_succeeded_this_month`, …) |
 | GET | `moderation/profiles/?filter=…` | staff directory: `filter=` preset + `search`, `gender`, `subcaste[]`, `region[]`, `education[]`, `marital_status[]`, `status[]`, `is_verified`, `age_min/max`, `has_photo`, `plan`, `designation`, `work_location`, `joined_after`, `ordering` |
+| GET | `moderation/profiles/{id}/` | staff: full member panel (photos, horoscope, subscriptions, completeness, activity) |
+| PATCH | `moderation/profiles/{id}/` | staff: edit bio-data on the member's behalf; nested `user` = `email`/`phone`/`full_name`/`email_verified` |
 | POST | `moderation/profiles/{id}/verify\|unverify\|suspend\|reinstate/` | staff |
+| POST | `moderation/profiles/{id}/grant-plan/` | staff: comp a membership — `{plan: <slug>, months?: <int>}` (supersedes the active subscription) |
+| GET | `moderation/profiles/{id}/subscriptions/` | staff: that member's subscription history |
+| POST | `moderation/subscriptions/{id}/revoke/` | staff: cancel a subscription |
+| GET | `moderation/payments/?status=…&plan=…&profile=…&created_after=…` | staff: read-only payment ledger, `search` by txn id / PayU id / email / phone / reg. no |
 | GET | `moderation/photos/?filter=pending` | staff |
 | POST | `moderation/photos/{id}/approve/` · DELETE `moderation/photos/{id}/` | staff: approve / reject |
 | GET | `moderation/horoscopes/?filter=pending` · POST `{id}/approve/` · DELETE `{id}/` | staff: horoscope queue |

@@ -36,8 +36,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { API_BASE } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+
+const DJANGO_ADMIN_URL =
+  process.env.NEXT_PUBLIC_DJANGO_ADMIN_URL ||
+  API_BASE.replace(/\/api\/v1\/?$/, "") + "/admin/";
 
 const NAV = [
   { href: "/matches", label: "Matches", icon: Sparkles },
@@ -82,6 +87,17 @@ export function AppHeader() {
             {NAV.map((n) => navLink(n.href, n.label, n.icon))}
             {navLink("/membership", "Membership", Sparkles)}
             {user?.is_staff && navLink("/admin", "Admin", ShieldCheck)}
+            {user?.is_superuser && (
+              <a
+                href={DJANGO_ADMIN_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <ShieldCheck className="size-4" />
+                Super admin
+              </a>
+            )}
           </nav>
         </div>
 
