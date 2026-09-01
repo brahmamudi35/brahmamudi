@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { BadgeCheck, MailWarning } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -13,6 +14,7 @@ import { Container } from "@/components/site/container";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { FieldGroup } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import { apiFetch } from "@/lib/api";
@@ -35,9 +37,38 @@ const schema = z
 type Values = z.infer<typeof schema>;
 
 export default function AccountPage() {
-  const { user } = useAuth();
+  return (
+    <Suspense fallback={null}>
+      <AccountInner />
+    </Suspense>
+  );
+}
+
+function AccountInner() {
+  const { user, refreshUser } = useAuth();
+  const searchParams = useSearchParams();
   const [submitting, setSubmitting] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [digestSaving, setDigestSaving] = useState(false);
+
+  useEffect(() => {
+    const d = searchParams.get("digest");
+    if (d === "off") toast.success("Unsubscribed from the weekly digest email.");
+    else if (d === "invalid") toast.error("That unsubscribe link is no longer valid.");
+  }, [searchParams]);
+
+  async function setDigest(on: boolean) {
+    setDigestSaving(true);
+    try {
+      await apiFetch("/auth/me/", { method: "PATCH", body: { email_digest: on } });
+      await refreshUser();
+      toast.success(on ? "Weekly digest on." : "Weekly digest off.");
+    } catch (err) {
+      handleApiError(err);
+    } finally {
+      setDigestSaving(false);
+    }
+  }
   const form = useForm<Values>({
     resolver: zodResolver(schema),
     defaultValues: { current_password: "", new_password: "", confirm: "" },
@@ -103,6 +134,30 @@ export default function AccountPage() {
             label="Google"
             value={user?.google_linked ? "Linked" : "Not linked"}
           />
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="text-lg">Email preferences</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <label className="flex items-start gap-3 text-sm">
+            <Checkbox
+              checked={!!user?.email_digest}
+              disabled={digestSaving}
+              onCheckedChange={(v) => setDigest(v === true)}
+              className="mt-0.5"
+            />
+            <span>
+              <span className="font-medium">Weekly match digest</span>
+              <span className="block text-muted-foreground">
+                A weekly email with new matches, interests awaiting your reply, and
+                who viewed your profile. Interest and verification emails are always
+                sent.
+              </span>
+            </span>
+          </label>
         </CardContent>
       </Card>
 

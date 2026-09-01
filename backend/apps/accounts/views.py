@@ -85,6 +85,8 @@ class MeView(generics.RetrieveUpdateAPIView):
         for field in ("phone", "full_name"):
             if field in request.data:
                 setattr(user, field, request.data[field])
+        if "email_digest" in request.data:
+            user.email_digest = bool(request.data["email_digest"])
         user.save()
         return response.Response(UserSerializer(user).data)
 

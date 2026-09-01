@@ -54,20 +54,26 @@ DATABASE_URL=postgres://brahmamudi:brahmamudi@localhost:5432/brahmamudi
 | `moderation` | Staff member desk: moderation, directory, profile edit, comp-a-plan, payment ledger |
 | `notifications` | In-app `Notification` feed + triggers (interests, views, moderation, payment) |
 | `alerts` | `SavedSearch` + the `send_search_alerts` command |
+| `digests` | Weekly match-activity digest email + `send_weekly_digests`, one-click unsubscribe |
 
 ## Tests
 
 ```bash
-python manage.py test              # ~103 tests, SQLite, no extra services
+python manage.py test              # ~114 tests, SQLite, no extra services
 ```
 
 ## Scheduled jobs
 
 `send_search_alerts` emails + notifies members when new profiles match a saved
-search. Run it on a schedule (cron / systemd timer / CI), e.g. hourly:
+search. `send_weekly_digests` mails each active member (who hasn't opted out via
+`User.email_digest`) a rollup of new matches, interests awaiting a reply and
+recent profile visitors — members with nothing to report are skipped, and
+`User.last_digest_sent_at` guards against a double run in the same week
+(`--force` overrides). Run them on a schedule (cron / systemd timer / CI):
 
 ```cron
-0 * * * *  cd /srv/brahmamudi/backend && ../.venv/bin/python manage.py send_search_alerts
+0 * * * *      cd /srv/brahmamudi/backend && ../.venv/bin/python manage.py send_search_alerts
+30 6 * * MON   cd /srv/brahmamudi/backend && ../.venv/bin/python manage.py send_weekly_digests
 ```
 
 ## Rate limiting
@@ -133,6 +139,8 @@ Base path `/api/v1/`.
 | POST | `notifications/read/` | `{ids?: [...]}` — omit `ids` to mark all read |
 | GET/POST | `saved-searches/` · GET/PATCH/DELETE `saved-searches/{id}/` | my saved searches |
 | GET | `saved-searches/{id}/results/` | run the saved search now (paginated) |
+| PATCH | `auth/me/` | update `phone` / `full_name` / `email_digest` |
+| GET | `digests/unsubscribe/?token=` | one-click digest opt-out from the email footer (302 → frontend) |
 | GET | `reference/nakshatram/`, `reference/raasi/`, `reference/education-levels/` | public |
 
 Interest and porutham details, plus `AUTO_APPROVE_PHOTOS` (photos live on upload

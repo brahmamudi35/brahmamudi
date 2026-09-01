@@ -42,6 +42,7 @@ api_v1 = [
     path("", include("apps.moderation.urls")),
     path("", include("apps.notifications.urls")),
     path("", include("apps.alerts.urls")),
+    path("", include("apps.digests.urls")),
 ]
 
 urlpatterns = [

@@ -8,6 +8,7 @@ export interface User {
   is_staff: boolean;
   is_superuser: boolean;
   email_verified: boolean;
+  email_digest: boolean;
   must_reset_password: boolean;
   date_joined: string;
   has_profile: boolean;

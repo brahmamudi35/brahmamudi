@@ -18,8 +18,8 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             "id", "email", "phone", "full_name", "is_staff", "is_superuser",
-            "email_verified", "must_reset_password", "date_joined", "has_profile",
-            "google_linked", "has_usable_password",
+            "email_verified", "email_digest", "must_reset_password", "date_joined",
+            "has_profile", "google_linked", "has_usable_password",
         )
         read_only_fields = fields
 

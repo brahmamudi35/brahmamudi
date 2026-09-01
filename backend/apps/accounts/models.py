@@ -42,6 +42,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     email_verified = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
 
+    # Weekly match-activity digest email (apps.digests).
+    email_digest = models.BooleanField(default=True)
+    last_digest_sent_at = models.DateTimeField(null=True, blank=True, editable=False)
+
     # Google Sign-In: the stable Google account id ("sub" claim).
     google_sub = models.CharField(
         max_length=40, null=True, blank=True, unique=True, db_index=True
