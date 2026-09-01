@@ -1,8 +1,9 @@
-"""Staff moderation API.
+"""Staff moderation & member-desk API.
 
 Profiles go live on creation; staff use these endpoints to award the verified
-badge, suspend abuse, and approve member photos (when AUTO_APPROVE_PHOTOS is
-off). Everything here is IsAdminUser.
+badge, suspend abuse, approve member photos, edit a member's bio-data on their
+behalf, comp a membership, and look up payments. Everything here is IsAdminUser
+(``is_staff``) — the Django admin is reserved for superusers.
 """
 
 from django.db.models import Count, Q
@@ -11,16 +12,24 @@ from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import decorators, filters, mixins, permissions, response, viewsets
+from rest_framework.exceptions import ValidationError
 
+from apps.memberships.models import MembershipPlan, Subscription
+from apps.payments.models import PaymentTransaction
 from apps.profiles.models import HoroscopeDocument, Profile, ProfilePhoto
 from apps.reference.enums import ProfileStatus
 
-from .filters import ModerationProfileFilter
+from .filters import ModerationPaymentFilter, ModerationProfileFilter
 from .serializers import (
     ModerationHoroscopeSerializer,
+    ModerationPaymentSerializer,
     ModerationPhotoSerializer,
+    ModerationProfileDetailSerializer,
     ModerationProfileSerializer,
+    ModerationProfileWriteSerializer,
+    ModerationSubscriptionSerializer,
 )
+from .services import grant_plan, revoke_subscription
 
 _PHOTO_COUNTS = {
     "photo_count": Count("photos", distinct=True),
@@ -31,10 +40,12 @@ _PHOTO_COUNTS = {
 
 
 class ModerationProfileViewSet(
-    mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
 ):
     permission_classes = [permissions.IsAdminUser]
-    serializer_class = ModerationProfileSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = ModerationProfileFilter
     search_fields = [
@@ -44,9 +55,6 @@ class ModerationProfileViewSet(
     ordering_fields = ["created_at", "date_of_birth", "regno", "first_name"]
     ordering = ["-created_at"]
 
-    # `filter=` presets for the moderation queues; the granular filters
-    # (gender, subcaste, age, plan, …) come from ModerationProfileFilter and
-    # combine with whichever preset is active.
     _PRESETS = {
         "unverified": lambda qs: qs.filter(is_verified=False).exclude(
             status=ProfileStatus.SUSPENDED
@@ -56,23 +64,45 @@ class ModerationProfileViewSet(
         "all": lambda qs: qs,
     }
 
+    def get_serializer_class(self):
+        if self.action in ("update", "partial_update"):
+            return ModerationProfileWriteSerializer
+        if self.action == "retrieve":
+            return ModerationProfileDetailSerializer
+        return ModerationProfileSerializer
+
     def get_queryset(self):
         qs = (
             Profile.objects.select_related("user")
             .prefetch_related("subscriptions__plan")
             .annotate(**_PHOTO_COUNTS)
         )
+        if self.action == "retrieve":
+            qs = qs.prefetch_related("photos", "horoscope", "partner_preference")
         if self.action != "list":
             return qs
         preset = self._PRESETS.get(self.request.query_params.get("filter", "all"))
         return preset(qs) if preset else qs
+
+    def update(self, request, *args, **kwargs):
+        kwargs["partial"] = True  # staff edits are always partial
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        instance.refresh_from_db()
+        return response.Response(
+            ModerationProfileDetailSerializer(
+                instance, context=self.get_serializer_context()
+            ).data
+        )
 
     def _set(self, request, **fields):
         profile = self.get_object()
         for k, v in fields.items():
             setattr(profile, k, v)
         profile.save(update_fields=list(fields))
-        return response.Response(self.get_serializer(profile).data)
+        return response.Response(ModerationProfileSerializer(profile).data)
 
     @decorators.action(detail=True, methods=["post"])
     def verify(self, request, pk=None):
@@ -94,6 +124,60 @@ class ModerationProfileViewSet(
     @decorators.action(detail=True, methods=["post"])
     def reinstate(self, request, pk=None):
         return self._set(request, status=ProfileStatus.ACTIVE)
+
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=ModerationSubscriptionSerializer)
+    @decorators.action(detail=True, methods=["post"], url_path="grant-plan")
+    def grant_plan(self, request, pk=None):
+        """Body: {"plan": "<slug>", "months": <int, optional>}."""
+        profile = self.get_object()
+        slug = request.data.get("plan")
+        plan = MembershipPlan.objects.filter(slug=slug).first()
+        if plan is None:
+            raise ValidationError({"plan": "Unknown plan."})
+        months = request.data.get("months")
+        try:
+            months = int(months) if months not in (None, "") else None
+        except (TypeError, ValueError):
+            raise ValidationError({"months": "Must be a whole number."})
+        sub = grant_plan(profile, plan, months=months, actor=request.user)
+        return response.Response(
+            ModerationSubscriptionSerializer(sub).data, status=201
+        )
+
+    @decorators.action(detail=True, methods=["get"])
+    def subscriptions(self, request, pk=None):
+        profile = self.get_object()
+        qs = profile.subscriptions.select_related("plan").order_by("-created_at")
+        return response.Response(
+            ModerationSubscriptionSerializer(qs, many=True).data
+        )
+
+
+class ModerationSubscriptionViewSet(
+    mixins.RetrieveModelMixin, viewsets.GenericViewSet
+):
+    permission_classes = [permissions.IsAdminUser]
+    serializer_class = ModerationSubscriptionSerializer
+    queryset = Subscription.objects.select_related("plan", "profile")
+
+    @decorators.action(detail=True, methods=["post"])
+    def revoke(self, request, pk=None):
+        sub = revoke_subscription(self.get_object())
+        return response.Response(self.get_serializer(sub).data)
+
+
+class ModerationPaymentViewSet(
+    mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet
+):
+    permission_classes = [permissions.IsAdminUser]
+    serializer_class = ModerationPaymentSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = ModerationPaymentFilter
+    search_fields = ["txnid", "mihpayid", "email", "phone", "profile__regno",
+                     "profile__first_name"]
+    ordering_fields = ["created_at", "amount"]
+    ordering = ["-created_at"]
+    queryset = PaymentTransaction.objects.select_related("profile", "plan")
 
 
 class ModerationPhotoViewSet(
@@ -172,7 +256,15 @@ class ModerationSummaryView(viewsets.ViewSet):
 
     def list(self, request):
         today = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        month_start = today.replace(day=1)
+        paid = (
+            Subscription.objects.filter(
+                status=Subscription.Status.ACTIVE, plan__price_inr__gt=0
+            )
+            .values("profile").distinct().count()
+        )
         return response.Response({
+            "total_members": Profile.objects.count(),
             "unverified_profiles": Profile.objects.filter(is_verified=False)
             .exclude(status=ProfileStatus.SUSPENDED).count(),
             "suspended_profiles": Profile.objects.filter(
@@ -184,5 +276,9 @@ class ModerationSummaryView(viewsets.ViewSet):
             ).count(),
             "profiles_created_today": Profile.objects.filter(
                 created_at__gte=today
+            ).count(),
+            "paid_members": paid,
+            "payments_succeeded_this_month": PaymentTransaction.objects.filter(
+                status=PaymentTransaction.Status.SUCCESS, created_at__gte=month_start
             ).count(),
         })

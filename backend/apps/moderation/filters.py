@@ -3,6 +3,7 @@ from datetime import date
 import django_filters as filters
 from django.db.models import Exists, OuterRef, Q
 
+from apps.payments.models import PaymentTransaction
 from apps.profiles.models import Profile, ProfilePhoto
 from apps.reference import enums
 from apps.reference.models import EducationLevel
@@ -69,3 +70,19 @@ class ModerationProfileFilter(filters.FilterSet):
         if value == "none":
             return qs.filter(~Exists(active.filter(plan__price_inr__gt=0)))
         return qs.filter(Exists(active.filter(plan__slug=value)))
+
+
+class ModerationPaymentFilter(filters.FilterSet):
+    status = filters.MultipleChoiceFilter(
+        choices=PaymentTransaction.Status.choices
+    )
+    environment = filters.CharFilter()
+    plan = filters.CharFilter(field_name="plan__slug")
+    is_legacy = filters.BooleanFilter()
+    created_after = filters.DateFilter(field_name="created_at", lookup_expr="date__gte")
+    created_before = filters.DateFilter(field_name="created_at", lookup_expr="date__lte")
+    profile = filters.NumberFilter(field_name="profile_id")
+
+    class Meta:
+        model = PaymentTransaction
+        fields: list = []

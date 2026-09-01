@@ -46,7 +46,7 @@ api_v1 = [
 
 urlpatterns = [
     path("healthz", healthz, name="healthz"),
-    path("admin/", admin.site.urls),
+    path(settings.DJANGO_ADMIN_PATH, admin.site.urls),
     path("api/v1/", include((api_v1, "api"), namespace="v1")),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),

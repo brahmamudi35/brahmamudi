@@ -143,6 +143,13 @@ class ProfileAdmin(admin.ModelAdmin):
         return resp
 
 
+@admin.register(PartnerPreference)
+class PartnerPreferenceAdmin(admin.ModelAdmin):
+    list_display = ("profile", "age_min", "age_max", "height_min_cm", "height_max_cm")
+    search_fields = ("profile__regno", "profile__first_name")
+    autocomplete_fields = ("profile",)
+
+
 @admin.register(Shortlist)
 class ShortlistAdmin(admin.ModelAdmin):
     list_display = ("owner", "target", "created_at")

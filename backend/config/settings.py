@@ -31,7 +31,7 @@ ALLOWED_HOSTS = env("DJANGO_ALLOWED_HOSTS")
 # Application definition
 
 DJANGO_APPS = [
-    "django.contrib.admin",
+    "config.apps.BrahmamudiAdminConfig",  # superuser-only, branded admin site
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -256,6 +256,13 @@ FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", default="http://localhost:3000")
 # Public base URL of this API, used for payment-gateway return URLs.
 BACKEND_BASE_URL = env("BACKEND_BASE_URL", default="http://localhost:8000")
 EMAIL_TOKEN_MAX_AGE_DAYS = env.int("EMAIL_TOKEN_MAX_AGE_DAYS", default=7)
+
+
+# Django admin (superuser-only control room). Set DJANGO_ADMIN_PATH to something
+# non-obvious in production, e.g. "ops-7h2/". Trailing slash, no leading slash.
+DJANGO_ADMIN_PATH = env("DJANGO_ADMIN_PATH", default="admin/")
+ADMIN_LOGIN_MAX_ATTEMPTS = env.int("ADMIN_LOGIN_MAX_ATTEMPTS", default=8)
+ADMIN_LOGIN_LOCKOUT_SECONDS = env.int("ADMIN_LOGIN_LOCKOUT_SECONDS", default=900)
 
 
 # Security (enabled when DEBUG is off)
