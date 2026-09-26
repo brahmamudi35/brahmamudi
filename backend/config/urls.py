@@ -1,7 +1,9 @@
+import re
+
 from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import include, path, re_path
+from django.views.static import serve as serve_static
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
@@ -54,5 +56,14 @@ urlpatterns = [
     path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# No separate file server (nginx/S3) in front of this app; serve MEDIA_URL directly
+# in every environment, same as whitenoise stands in for nginx on static files.
+# (django.conf.urls.static.static() no-ops when DEBUG=False, so build the
+# pattern directly instead.)
+urlpatterns += [
+    re_path(
+        r"^%s(?P<path>.*)$" % re.escape(settings.MEDIA_URL.lstrip("/")),
+        serve_static,
+        {"document_root": settings.MEDIA_ROOT},
+    ),
+]
