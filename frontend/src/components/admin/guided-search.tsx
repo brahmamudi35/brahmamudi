@@ -31,10 +31,18 @@ export function GuidedSearch({ onChange }: { onChange: () => void }) {
   const { data: ref } = useReferenceData();
   const [step, setStep] = useState(0);
   const [f, setF] = useState<MemberFilters>(START);
+  const [lookup, setLookup] = useState("");
 
   const done = step >= STEPS.length;
   const id: StepId | null = done ? null : STEPS[step];
   const set = (patch: Partial<MemberFilters>) => setF((s) => ({ ...s, ...patch }));
+
+  function runLookup(e: { preventDefault: () => void }) {
+    e.preventDefault();
+    if (!lookup.trim()) return;
+    setF((s) => ({ ...s, search: lookup.trim() }));
+    setStep(STEPS.length);
+  }
 
   const countQuery = useMemo(
     () => buildMemberQuery(f, { limit: 1 }),
@@ -42,12 +50,32 @@ export function GuidedSearch({ onChange }: { onChange: () => void }) {
   );
   const running = useMatchCount(countQuery);
 
-  if (done) return <Results filters={f} onRestart={() => { setF(START); setStep(0); }} onBack={() => setStep(STEPS.length - 1)} onChange={onChange} />;
+  if (done) return <Results filters={f} onRestart={() => { setF(START); setLookup(""); setStep(0); }} onBack={() => setStep(STEPS.length - 1)} onChange={onChange} />;
 
   const enums = ref?.enums;
 
   return (
     <div className="mx-auto max-w-xl">
+      <form onSubmit={runLookup} className="mb-6 flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={lookup}
+            onChange={(e) => setLookup(e.target.value)}
+            placeholder="Know exactly who? Search by profile number, name, email or phone…"
+            className="h-9 w-full rounded-md border bg-background pl-8 pr-2 text-sm outline-none focus-visible:border-ring"
+          />
+        </div>
+        <Button type="submit" size="sm" variant="outline" disabled={!lookup.trim()}>
+          Look up
+        </Button>
+      </form>
+      <div className="mb-6 flex items-center gap-3 text-xs text-muted-foreground">
+        <div className="h-px flex-1 bg-border" />
+        or answer a few questions to browse
+        <div className="h-px flex-1 bg-border" />
+      </div>
+
       <Progress step={step} total={STEPS.length} />
 
       <div className="mt-6 min-h-[220px]">
@@ -224,6 +252,7 @@ function Results({
   const { rows, count, busy, loadingMore, act, loadMore } = useMemberList(query);
 
   const summary = [
+    filters.search && `"${filters.search}"`,
     filters.gender === "F" ? "Brides" : filters.gender === "M" ? "Grooms" : "Members",
     filters.age_min || filters.age_max
       ? `${filters.age_min || "any"}–${filters.age_max || "any"} yrs`
