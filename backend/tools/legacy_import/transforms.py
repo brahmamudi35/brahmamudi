@@ -59,7 +59,12 @@ def height_to_cm(value: str | None) -> int | None:
         return None
     feet = int(m.group(1))
     inches = int(m.group(2)) if m.group(2) else 0
-    if feet < 3 or feet > 7 or inches > 11:
+    if inches > 11 or feet > 7:
+        return None
+    # A handful of legacy rows have height1='4' with no real data anywhere
+    # else (height double is always 0.0) - an implausible 4'0" for an adult,
+    # not a real short stature. Below ~4'6" treat it as unset.
+    if feet < 4 or (feet == 4 and inches < 6):
         return None
     return round((feet * 12 + inches) * 2.54)
 
