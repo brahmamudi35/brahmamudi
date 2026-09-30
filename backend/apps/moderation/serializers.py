@@ -88,6 +88,7 @@ class ModerationProfileDetailSerializer(ModerationProfileSerializer):
 
     class Meta(ModerationProfileSerializer.Meta):
         fields = ModerationProfileSerializer.Meta.fields + (
+            "first_name",
             "surname", "mother_tongue", "height_cm", "complexion", "food_habit",
             "physically_challenged", "gothram", "education_detail", "company",
             "annual_income_text", "native_district", "address",
@@ -136,6 +137,13 @@ class ModerationProfileDetailSerializer(ModerationProfileSerializer):
 # --- member profile edit ----------------------------------------------
 
 class _UserFieldsSerializer(serializers.ModelSerializer):
+    # Plain field, not derived from the model: avoids DRF auto-attaching a
+    # UniqueValidator here, which (as a nested child serializer with no
+    # instance of its own) can't exclude the profile's own user and would
+    # reject saving back its current, unchanged email. Uniqueness for a
+    # genuinely new email is checked explicitly in update() below.
+    email = serializers.EmailField(required=False)
+
     class Meta:
         model = get_user_model()
         fields = ("email", "phone", "full_name", "email_verified")
