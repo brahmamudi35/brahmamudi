@@ -98,6 +98,9 @@ export function SelectField<T extends FieldValues>({
   placeholder = "Select…",
 }: BaseProps<T> & { options: Choice[]; placeholder?: string }) {
   const msg = errorMessage(form, name);
+  // Select.Value only shows the raw stored value unless given this
+  // value -> label map, so it can display the matching option's label.
+  const items = Object.fromEntries(options.map((o) => [String(o.value), o.label]));
   return (
     <Field data-invalid={!!msg}>
       <FieldLabel htmlFor={name}>
@@ -109,6 +112,7 @@ export function SelectField<T extends FieldValues>({
         name={name}
         render={({ field }) => (
           <Select
+            items={items}
             value={field.value ? String(field.value) : ""}
             onValueChange={field.onChange}
           >

@@ -182,6 +182,10 @@ export function SearchFilters({ value, onChange, enums, nakshatram }: Props) {
       <div className="space-y-1.5">
         <Label>Nakshatram</Label>
         <Select
+          items={{
+            any: "Any star",
+            ...Object.fromEntries(nakshatram.map((n) => [String(n.order), n.name])),
+          }}
           value={value.nakshatram || "any"}
           onValueChange={(v) => set("nakshatram", !v || v === "any" ? "" : String(v))}
         >
@@ -222,6 +226,7 @@ export function SearchFilters({ value, onChange, enums, nakshatram }: Props) {
       <div className="space-y-1.5">
         <Label>Sort by</Label>
         <Select
+          items={Object.fromEntries(ORDERING.map((o) => [o.value, o.label]))}
           value={value.ordering}
           onValueChange={(v) => set("ordering", String(v ?? "-created_at"))}
         >
