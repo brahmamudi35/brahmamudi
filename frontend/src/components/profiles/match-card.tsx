@@ -49,6 +49,11 @@ export function MatchCard({ profile }: { profile: SuggestedProfile }) {
             <BadgeCheck className="size-4 shrink-0 text-primary" />
           )}
         </div>
+        {profile.education_detail && (
+          <p className="truncate text-xs text-muted-foreground">
+            {profile.education_detail}
+          </p>
+        )}
         <p className="text-xs capitalize text-muted-foreground">{facts}</p>
         {(profile.city_display || profile.country_living) && (
           <p className="flex items-center gap-1 text-xs text-muted-foreground">

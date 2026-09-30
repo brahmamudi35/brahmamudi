@@ -88,13 +88,12 @@ export function ProfileCard({
             <BadgeCheck className="size-4 shrink-0 text-primary" />
           )}
         </div>
-        <p className="text-xs text-muted-foreground">{profile.regno}</p>
+        <p className="truncate text-xs text-muted-foreground">
+          {profile.education_detail || "—"}
+        </p>
         <p className="mt-1 text-sm capitalize text-muted-foreground">
           {facts.join(" · ")}
         </p>
-        {profile.education_detail && (
-          <p className="truncate text-sm">{profile.education_detail}</p>
-        )}
         {(profile.city_display || profile.country_living) && (
           <p className="mt-auto flex items-center gap-1 pt-1 text-xs text-muted-foreground">
             <MapPin className="size-3" />
