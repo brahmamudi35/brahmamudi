@@ -370,7 +370,7 @@ export default function AdminMemberPage() {
                     <div key={ph.id} className="space-y-1">
                       <div className="relative aspect-square overflow-hidden rounded-md bg-muted">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={ph.image} alt="" className="size-full object-cover" />
+                        <img src={ph.image} alt="" className="size-full object-contain" />
                         {!ph.is_approved && (
                           <span className="absolute left-1 top-1 rounded bg-amber-500/90 px-1 text-[10px] font-medium text-white">
                             pending

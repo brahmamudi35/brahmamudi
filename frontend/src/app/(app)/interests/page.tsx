@@ -156,7 +156,7 @@ function PersonThumb({ person }: { person: ProfileSummary }) {
     <div className="size-14 shrink-0 overflow-hidden rounded-full bg-muted">
       {person.primary_photo ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={person.primary_photo} alt="" className="size-full object-cover" />
+        <img src={person.primary_photo} alt="" className="size-full object-contain" />
       ) : (
         <div className="flex size-full items-center justify-center font-heading text-lg text-primary/40">
           {person.first_name?.[0]}

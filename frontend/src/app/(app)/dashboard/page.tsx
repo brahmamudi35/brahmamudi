@@ -297,7 +297,7 @@ function ProfileCard({ profile }: { profile: Profile | null }) {
             <img
               src={photo.image}
               alt=""
-              className="size-full object-cover"
+              className="size-full object-contain"
             />
           ) : (
             <div className="flex size-full items-center justify-center text-muted-foreground">

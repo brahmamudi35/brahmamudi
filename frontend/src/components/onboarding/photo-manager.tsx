@@ -91,7 +91,7 @@ export function PhotoManager() {
             <img
               src={photo.image}
               alt=""
-              className="size-full object-cover"
+              className="size-full object-contain"
             />
             {!photo.is_approved && (
               <span className="absolute left-1.5 top-1.5 rounded bg-background/90 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">

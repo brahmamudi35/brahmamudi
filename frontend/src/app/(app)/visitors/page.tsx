@@ -58,7 +58,7 @@ export default function VisitorsPage() {
                     <img
                       src={v.profile.primary_photo}
                       alt=""
-                      className="size-full object-cover"
+                      className="size-full object-contain"
                     />
                   ) : (
                     <div className="flex size-full items-center justify-center font-heading text-primary/40">

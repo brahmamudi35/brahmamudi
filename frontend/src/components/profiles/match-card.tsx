@@ -29,7 +29,7 @@ export function MatchCard({ profile }: { profile: SuggestedProfile }) {
           <img
             src={profile.primary_photo}
             alt={profile.first_name}
-            className="size-full object-cover transition-transform group-hover:scale-[1.03]"
+            className="size-full object-contain transition-transform group-hover:scale-[1.03]"
           />
         ) : (
           <div className="flex size-full items-center justify-center bg-gradient-to-br from-accent/50 to-muted font-heading text-5xl text-primary/40">

@@ -339,7 +339,7 @@ function PhotosTab({ onChange }: { onChange: () => void }) {
         <Card key={p.id} className="overflow-hidden">
           <div className="aspect-square bg-muted">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={p.image} alt="" className="size-full object-cover" />
+            <img src={p.image} alt="" className="size-full object-contain" />
           </div>
           <CardContent className="space-y-2 py-3">
             <Link

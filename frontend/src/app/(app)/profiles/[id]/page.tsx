@@ -173,7 +173,7 @@ export default function ProfileDetailPage() {
                 <img
                   src={photos[activePhoto]?.image}
                   alt={profile.first_name}
-                  className="size-full object-cover"
+                  className="size-full object-contain"
                 />
               ) : (
                 <div className="flex size-full items-center justify-center font-heading text-6xl text-primary/30">
@@ -193,7 +193,7 @@ export default function ProfileDetailPage() {
                     )}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.image} alt="" className="size-full object-cover" />
+                    <img src={p.image} alt="" className="size-full object-contain" />
                   </button>
                 ))}
               </div>
