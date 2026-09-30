@@ -43,8 +43,8 @@ class SubCaste(models.TextChoices):
     GOLDSMITH = "goldsmith", "Goldsmith (Ausula / Swarnakara)"
     CARPENTER = "carpenter", "Carpenter (Vadla / Vardhaki)"
     BLACKSMITH = "blacksmith", "Blacksmith (Kammari / Karmara)"
-    BRAZIER = "kanchari", "Brazier (Kanchari / Kansara)"
-    SCULPTOR = "shilpi", "Sculptor (Shilpi / Sthapati)"
+    BRAZIER = "kanchari", "Kanchari (Kansara)"
+    SCULPTOR = "shilpi", "Shilpi (Sthapati)"
 
 
 class Region(models.TextChoices):
