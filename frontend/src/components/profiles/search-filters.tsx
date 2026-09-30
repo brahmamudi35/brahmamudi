@@ -128,7 +128,7 @@ export function SearchFilters({ value, onChange, enums, nakshatram }: Props) {
         <Label htmlFor="q">Keyword</Label>
         <Input
           id="q"
-          placeholder="Name, reg. no, job…"
+          placeholder="Name, profile number, reg. no, job…"
           value={value.q}
           onChange={(e) => set("q", e.target.value)}
         />

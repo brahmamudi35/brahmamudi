@@ -35,7 +35,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
     """Browse other members; manage your own profile via /profiles/me/."""
 
     filterset_class = ProfileFilter
-    search_fields = ["first_name", "surname", "regno", "occupation", "gothram"]
+    search_fields = ["id", "first_name", "surname", "regno", "occupation", "gothram"]
     ordering_fields = ["created_at", "date_of_birth", "height_cm"]
     ordering = ["-created_at"]
 
