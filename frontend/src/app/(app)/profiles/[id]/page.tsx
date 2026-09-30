@@ -107,7 +107,7 @@ export default function ProfileDetailPage() {
   if (!profile) {
     return (
       <Container className="grid gap-6 py-8 lg:grid-cols-[2fr_1fr]">
-        <Skeleton className="aspect-[4/3] w-full" />
+        <Skeleton className="aspect-[3/4] w-full" />
         <Skeleton className="h-64 w-full" />
       </Container>
     );
@@ -139,7 +139,6 @@ export default function ProfileDetailPage() {
     ["Annual income", profile.annual_income_text || "—"],
   ];
   const location: [string, string][] = [
-    ["Citizenship", profile.citizenship || "—"],
     ["Living in", profile.country_living || "—"],
     ["Native district", profile.native_district || "—"],
     ["Settled at", profile.settled_at || "—"],
@@ -168,7 +167,7 @@ export default function ProfileDetailPage() {
         <div className="space-y-6">
           {/* Gallery */}
           <div className="overflow-hidden rounded-xl border bg-card">
-            <div className="aspect-[4/3] bg-muted">
+            <div className="aspect-[3/4] bg-muted">
               {photos.length ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -201,6 +200,8 @@ export default function ProfileDetailPage() {
             )}
           </div>
 
+          {profile.about && <Prose title="About" text={profile.about} />}
+
           <Section title="Basic details" rows={facts} />
           <Section title="Community & horoscope" rows={community} />
           <Section title="Education & career" rows={career} />
@@ -209,7 +210,6 @@ export default function ProfileDetailPage() {
           {profile.family_background && (
             <Prose title="About the family" text={profile.family_background} />
           )}
-          {profile.about && <Prose title="About" text={profile.about} />}
           {profile.expectations && (
             <Prose title="Partner expectations" text={profile.expectations} />
           )}
@@ -228,7 +228,9 @@ export default function ProfileDetailPage() {
                     <BadgeCheck className="size-5 text-primary" />
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground">{profile.regno}</p>
+                <p className="text-sm text-muted-foreground">
+                  {profile.education_detail || "—"}
+                </p>
               </div>
 
               <div className="flex flex-wrap gap-1.5 text-sm capitalize">

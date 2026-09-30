@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { BellRing, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { apiFetch } from "@/lib/api";
 import { handleApiError } from "@/lib/form";
+import { useReferenceData } from "@/lib/reference";
 import type { SavedSearch } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -29,9 +30,15 @@ const LABELS: Record<string, string> = {
   country_living: "country",
 };
 
-function summarise(f: SavedSearch["filters"]): string {
+function summarise(
+  f: SavedSearch["filters"],
+  nakshatramByOrder: Map<string, string>,
+  raasiByOrder: Map<string, string>,
+): string {
   const parts = Object.entries(f).map(([k, v]) => {
-    const val = Array.isArray(v) ? v.join(" / ") : v;
+    let val = Array.isArray(v) ? v.join(" / ") : v;
+    if (k === "nakshatram") val = nakshatramByOrder.get(String(v)) ?? val;
+    if (k === "raasi") val = raasiByOrder.get(String(v)) ?? val;
     return `${LABELS[k] ?? k}: ${val}`;
   });
   return parts.length ? parts.join(" · ") : "everyone";
@@ -40,6 +47,16 @@ function summarise(f: SavedSearch["filters"]): string {
 export default function SavedSearchesPage() {
   const [rows, setRows] = useState<SavedSearch[] | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
+  const { data: ref } = useReferenceData();
+
+  const nakshatramByOrder = useMemo(
+    () => new Map((ref?.nakshatram ?? []).map((n) => [String(n.order), n.name])),
+    [ref],
+  );
+  const raasiByOrder = useMemo(
+    () => new Map((ref?.raasi ?? []).map((r) => [String(r.order), r.name])),
+    [ref],
+  );
 
   const load = useCallback(() => {
     apiFetch<SavedSearch[]>("/saved-searches/")
@@ -105,7 +122,7 @@ export default function SavedSearchesPage() {
                   <div className="min-w-0">
                     <p className="font-medium">{s.name}</p>
                     <p className="truncate text-xs capitalize text-muted-foreground">
-                      {summarise(s.filters)}
+                      {summarise(s.filters, nakshatramByOrder, raasiByOrder)}
                     </p>
                   </div>
                   <span className="shrink-0 text-xs text-muted-foreground">

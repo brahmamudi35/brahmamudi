@@ -28,7 +28,7 @@ const schema = z.object({
   gender: z.string().min(1, "Select one."),
   date_of_birth: z.string().min(1, "Required."),
   marital_status: z.string().min(1, "Select one."),
-  mother_tongue: z.string().optional(),
+  about: z.string().max(2000, "Keep it under 2000 characters.").optional(),
 
   height_cm: z.string().optional(),
   complexion: z.string().optional(),
@@ -49,7 +49,6 @@ const schema = z.object({
   work_location: z.string().optional(),
   annual_income_text: z.string().optional(),
 
-  citizenship: z.string().optional(),
   country_living: z.string().optional(),
   native_district: z.string().optional(),
   settled_at: z.string().optional(),
@@ -71,20 +70,25 @@ const schema = z.object({
 type Values = z.infer<typeof schema>;
 
 const STEPS = [
-  { title: "About", fields: ["profile_for", "first_name", "surname", "gender", "date_of_birth", "marital_status", "mother_tongue"] },
+  { title: "About", fields: ["profile_for", "first_name", "surname", "gender", "date_of_birth", "marital_status", "about"] },
   { title: "Appearance", fields: ["height_cm", "complexion", "food_habit"] },
   { title: "Community & horoscope", fields: ["subcaste", "gothram", "nakshatram", "raasi", "paadam", "time_of_birth", "place_of_birth"] },
   { title: "Education & career", fields: ["education", "education_detail", "occupation", "company", "work_location", "annual_income_text"] },
-  { title: "Location", fields: ["citizenship", "country_living", "native_district", "settled_at", "region", "address"] },
+  { title: "Location", fields: ["country_living", "native_district", "settled_at", "region", "address"] },
   { title: "Family", fields: ["father_name", "father_occupation", "mother_name", "mother_occupation", "family_background"] },
   { title: "Partner preference", fields: ["pref_age_min", "pref_age_max", "pref_height_min", "pref_height_max", "pref_notes"] },
   { title: "Photos", fields: [] },
 ] as const;
 
-const heightOptions = Array.from({ length: 37 }, (_, i) => {
-  const cm = 137 + i * 2; // ~4'6" to ~6'6"
-  const totalInch = Math.round(cm / 2.54);
-  return { value: String(cm), label: `${Math.floor(totalInch / 12)}′ ${totalInch % 12}″ (${cm} cm)` };
+// Built from whole inches (not fixed cm steps) so every option has a
+// distinct feet/inches label with no duplicates or rounding drift.
+const heightOptions = Array.from({ length: 29 }, (_, i) => {
+  const totalInch = 54 + i; // 4'6" to 6'10"
+  const cm = Math.round(totalInch * 2.54);
+  return {
+    value: String(cm),
+    label: `${Math.floor(totalInch / 12)}′ ${totalInch % 12}″ (${cm} cm)`,
+  };
 });
 
 function num(v?: string) {
@@ -119,7 +123,6 @@ export default function OnboardingPage() {
       gender: "",
       date_of_birth: "",
       marital_status: "unmarried",
-      mother_tongue: "Telugu",
       subcaste: "",
     },
   });
@@ -141,7 +144,7 @@ export default function OnboardingPage() {
           gender: p.gender,
           date_of_birth: p.date_of_birth ?? "",
           marital_status: p.marital_status || "unmarried",
-          mother_tongue: p.mother_tongue || "Telugu",
+          about: p.about,
           height_cm: p.height_cm ? String(p.height_cm) : "",
           complexion: p.complexion,
           food_habit: p.food_habit,
@@ -158,7 +161,6 @@ export default function OnboardingPage() {
           company: p.company,
           work_location: p.work_location,
           annual_income_text: p.annual_income_text,
-          citizenship: p.citizenship,
           country_living: p.country_living,
           native_district: p.native_district,
           settled_at: p.settled_at,
@@ -197,7 +199,7 @@ export default function OnboardingPage() {
       gender: values.gender,
       date_of_birth: values.date_of_birth || null,
       marital_status: values.marital_status,
-      mother_tongue: values.mother_tongue ?? "Telugu",
+      about: values.about ?? "",
       height_cm: num(values.height_cm),
       complexion: values.complexion ?? "",
       food_habit: values.food_habit ?? "",
@@ -214,7 +216,6 @@ export default function OnboardingPage() {
       company: values.company ?? "",
       work_location: values.work_location ?? "",
       annual_income_text: values.annual_income_text ?? "",
-      citizenship: values.citizenship ?? "",
       country_living: values.country_living ?? "",
       native_district: values.native_district ?? "",
       settled_at: values.settled_at ?? "",
@@ -331,7 +332,13 @@ export default function OnboardingPage() {
                     <SelectField form={form} name="gender" label="Gender" options={ref.enums.gender} required />
                     <TextField form={form} name="date_of_birth" label="Date of birth" type="date" required />
                     <SelectField form={form} name="marital_status" label="Marital status" options={ref.enums.marital_status} required />
-                    <TextField form={form} name="mother_tongue" label="Mother tongue" />
+                    <TextareaField
+                      form={form}
+                      name="about"
+                      label="About me"
+                      description="A few lines about yourself — interests, personality, what makes you, you."
+                      rows={4}
+                    />
                   </>
                 )}
                 {step === 1 && (
@@ -364,7 +371,6 @@ export default function OnboardingPage() {
                 )}
                 {step === 4 && (
                   <>
-                    <TextField form={form} name="citizenship" label="Citizenship" />
                     <TextField form={form} name="country_living" label="Currently living in (country)" />
                     <TextField form={form} name="native_district" label="Native district" />
                     <TextField form={form} name="settled_at" label="Family settled at (city)" />

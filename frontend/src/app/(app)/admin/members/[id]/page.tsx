@@ -35,10 +35,15 @@ import type {
   ModerationSubscription,
 } from "@/lib/types";
 
-const heightOptions = Array.from({ length: 37 }, (_, i) => {
-  const cm = 137 + i * 2;
-  const inch = Math.round(cm / 2.54);
-  return { value: String(cm), label: `${Math.floor(inch / 12)}′ ${inch % 12}″ (${cm} cm)` };
+// Built from whole inches (not fixed cm steps) so every option has a
+// distinct feet/inches label with no duplicates or rounding drift.
+const heightOptions = Array.from({ length: 29 }, (_, i) => {
+  const totalInch = 54 + i; // 4'6" to 6'10"
+  const cm = Math.round(totalInch * 2.54);
+  return {
+    value: String(cm),
+    label: `${Math.floor(totalInch / 12)}′ ${totalInch % 12}″ (${cm} cm)`,
+  };
 });
 
 const str = (v: unknown) => (v == null ? "" : String(v));

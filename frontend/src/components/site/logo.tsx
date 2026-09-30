@@ -1,8 +1,7 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { cn } from "@/lib/utils";
-
-const siteName = process.env.NEXT_PUBLIC_SITE_NAME ?? "brahmamudi";
 
 export function Logo({
   className,
@@ -14,33 +13,32 @@ export function Logo({
   withWordmark?: boolean;
 }) {
   return (
-    <Link
-      href={href}
-      className={cn("inline-flex items-center gap-2 font-heading", className)}
-    >
-      <Mark className="size-7 text-primary" />
-      {withWordmark && (
-        <span className="text-xl font-semibold tracking-tight text-foreground">
-          {siteName}
-        </span>
+    <Link href={href} className={cn("inline-flex items-center", className)}>
+      {withWordmark ? (
+        <Image
+          src="/images/brahmamudi-logo-full.png"
+          alt="Brahmamudi.com — A vishwabrahmana Vivaha Seva Samiti"
+          width={323}
+          height={63}
+          priority
+          className="h-14 w-auto object-contain"
+        />
+      ) : (
+        <Mark className="size-7" />
       )}
     </Link>
   );
 }
 
-/** Two interlocked rings — the "mudi" (marriage knot). */
+/** The brahmamudi flame mark, from the original brahmamudi.com logo. */
 export function Mark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 32 32" fill="none" className={className} aria-hidden="true">
-      <circle cx="12" cy="16" r="8" stroke="currentColor" strokeWidth="2.5" />
-      <circle
-        cx="20"
-        cy="16"
-        r="8"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        opacity="0.55"
-      />
-    </svg>
+    <Image
+      src="/images/brahmamudi-flame.png"
+      alt=""
+      width={50}
+      height={59}
+      className={cn("object-contain", className)}
+    />
   );
 }
