@@ -66,7 +66,7 @@ class ProfileAdmin(admin.ModelAdmin):
         ActivePlanFilter, ProfileCompleteFilter, "profile_for", "created_at",
     )
     search_fields = (
-        "regno", "first_name", "surname", "user__email", "user__phone",
+        "id", "regno", "first_name", "surname", "user__email", "user__phone",
         "contact_phone", "parent_phone", "occupation", "company", "gothram",
         "legacy_rid",
     )

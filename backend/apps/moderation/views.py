@@ -49,7 +49,7 @@ class ModerationProfileViewSet(
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = ModerationProfileFilter
     search_fields = [
-        "regno", "first_name", "surname", "user__email", "user__phone",
+        "id", "regno", "first_name", "surname", "user__email", "user__phone",
         "contact_phone", "parent_phone", "occupation", "company", "gothram",
     ]
     ordering_fields = ["created_at", "date_of_birth", "regno", "first_name"]
