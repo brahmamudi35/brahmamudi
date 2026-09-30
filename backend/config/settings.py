@@ -47,6 +47,7 @@ THIRD_PARTY_APPS = [
     "django_filters",
     "corsheaders",
     "drf_spectacular",
+    "anymail",
 ]
 
 LOCAL_APPS = [
@@ -247,10 +248,18 @@ PAYU_PRODUCTION_BASE_URL = "https://secure.payu.in"
 
 
 # Email (interest notifications, password reset)
-EMAIL_BACKEND = env(
-    "DJANGO_EMAIL_BACKEND",
-    default="django.core.mail.backends.console.EmailBackend",
-)
+# Railway blocks outbound SMTP (ports 25/465/587) entirely, so raw SMTP
+# (including Gmail) can never connect from this host. Resend's HTTP API
+# (over 443) is used instead whenever RESEND_API_KEY is set.
+RESEND_API_KEY = env("RESEND_API_KEY", default="")
+if RESEND_API_KEY:
+    EMAIL_BACKEND = "anymail.backends.resend.EmailBackend"
+    ANYMAIL = {"RESEND_API_KEY": RESEND_API_KEY}
+else:
+    EMAIL_BACKEND = env(
+        "DJANGO_EMAIL_BACKEND",
+        default="django.core.mail.backends.console.EmailBackend",
+    )
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@brahmamudi.com")
 EMAIL_HOST = env("EMAIL_HOST", default="localhost")
 EMAIL_PORT = env.int("EMAIL_PORT", default=25)

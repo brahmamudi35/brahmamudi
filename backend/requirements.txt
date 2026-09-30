@@ -5,6 +5,7 @@ cffi==2.1.1
 charset-normalizer==3.5.1
 cryptography==50.0.1
 Django==5.2.17
+django-anymail==15.2
 django-cors-headers==4.9.0
 django-environ==0.14.0
 django-filter==26.1
