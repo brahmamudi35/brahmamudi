@@ -165,6 +165,32 @@ class EmailVerifySerializer(_CodeOrTokenMixin, serializers.Serializer):
         return user
 
 
+class DeleteAccountSerializer(serializers.Serializer):
+    """Confirm with the current password, or — for accounts that never set one
+    (Google sign-in, unreset legacy members) — by typing DELETE."""
+
+    password = serializers.CharField(required=False, allow_blank=True, write_only=True)
+    confirm = serializers.CharField(required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        user = self.context["request"].user
+        if user.is_staff or user.is_superuser:
+            raise serializers.ValidationError(
+                "Staff accounts can't be deleted here. Ask a super admin."
+            )
+        if user.has_usable_password():
+            if not user.check_password(attrs.get("password") or ""):
+                raise serializers.ValidationError({"password": "Password is incorrect."})
+        elif (attrs.get("confirm") or "").strip().upper() != "DELETE":
+            raise serializers.ValidationError({"confirm": "Type DELETE to confirm."})
+        return attrs
+
+    def save(self, **kwargs):
+        from .services import delete_account
+
+        delete_account(self.context["request"].user)
+
+
 class ResendVerificationSerializer(serializers.Serializer):
     email = serializers.EmailField()
 

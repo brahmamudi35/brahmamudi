@@ -14,6 +14,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from config.health import healthz
 
 from apps.accounts.views import (
+    DeleteAccountView,
     EmailVerifyView,
     GoogleAuthView,
     LoginView,
@@ -31,6 +32,7 @@ api_v1 = [
     path("auth/google/", GoogleAuthView.as_view(), name="google-auth"),
     path("auth/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
     path("auth/me/", MeView.as_view(), name="me"),
+    path("auth/delete-account/", DeleteAccountView.as_view(), name="delete-account"),
     path("auth/password/change/", PasswordChangeView.as_view(), name="password-change"),
     path("auth/password/reset/", PasswordResetRequestView.as_view(), name="password-reset"),
     path("auth/password/reset/confirm/", PasswordResetConfirmView.as_view(), name="password-reset-confirm"),

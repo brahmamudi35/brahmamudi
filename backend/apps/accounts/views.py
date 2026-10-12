@@ -10,6 +10,7 @@ from config.throttling import PasswordResetThrottle
 
 from .google import GoogleAuthError, get_or_create_user_from_google, verify_google_credential
 from .serializers import (
+    DeleteAccountSerializer,
     EmailVerifySerializer,
     LoginSerializer,
     PasswordChangeSerializer,
@@ -122,6 +123,15 @@ class PasswordChangeView(_ActionView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = PasswordChangeSerializer
     success_detail = "Password changed."
+
+
+class DeleteAccountView(_ActionView):
+    """Permanently delete the signed-in member's account. Body: {password} or
+    {confirm: "DELETE"} for accounts without a password."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = DeleteAccountSerializer
+    success_detail = "Your account has been deleted."
 
 
 class EmailVerifyView(_ActionView):
