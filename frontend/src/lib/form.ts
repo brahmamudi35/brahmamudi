@@ -3,7 +3,7 @@ import { toast } from "sonner";
 
 import type { ApiError } from "@/lib/types";
 
-function isApiError(e: unknown): e is ApiError {
+export function isApiError(e: unknown): e is ApiError {
   return !!e && typeof e === "object" && "detail" in e && "status" in e;
 }
 

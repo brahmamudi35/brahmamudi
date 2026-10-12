@@ -141,6 +141,12 @@ export function PaymentsTable({ profileId }: { profileId?: number }) {
                     {new Date(p.created_at).toLocaleDateString()}
                   </span>
                   {p.is_legacy && <Badge variant="outline">legacy</Badge>}
+                  {p.environment === "manual" && (
+                    <Badge variant="outline">
+                      {p.mode === "comp" ? "complimentary" : `offline · ${p.mode}`}
+                      {p.bank_ref_num ? ` · ${p.bank_ref_num}` : ""}
+                    </Badge>
+                  )}
                   {p.error_message && (
                     <span className="w-full text-xs text-destructive">
                       {p.error_message}

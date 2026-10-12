@@ -16,6 +16,8 @@ vi.mock("@/lib/api", () => ({ apiFetch }));
 vi.mock("@/lib/auth", () => ({ useAuth }));
 vi.mock("@/lib/form", () => ({ handleApiError: vi.fn() }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+// covered by its own test; it needs a router this file doesn't mock
+vi.mock("@/components/account/delete-account-card", () => ({ DeleteAccountCard: () => null }));
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));

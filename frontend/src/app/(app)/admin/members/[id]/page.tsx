@@ -17,10 +17,13 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { ActivityLog } from "@/components/admin/activity-log";
 import { PaymentsTable } from "@/components/admin/payments-table";
+import { PlanManager } from "@/components/admin/plan-manager";
 import { SelectField, TextField, TextareaField } from "@/components/form/fields";
 import { Container } from "@/components/site/container";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmButton } from "@/components/admin/confirm-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FieldGroup } from "@/components/ui/field";
@@ -32,7 +35,6 @@ import { useReferenceData } from "@/lib/reference";
 import type {
   MembershipPlan,
   ModerationProfileDetail,
-  ModerationSubscription,
 } from "@/lib/types";
 
 // Built from whole inches (not fixed cm steps) so every option has a
@@ -214,28 +216,44 @@ export default function AdminMemberPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-1.5">
-          <Button
-            size="sm"
-            variant={p.is_verified ? "outline" : "default"}
-            disabled={!!busy}
-            onClick={() => act(p.is_verified ? "unverify" : "verify")}
-          >
-            {p.is_verified ? <X className="size-4" /> : <Check className="size-4" />}
-            {p.is_verified ? "Unverify" : "Verify"}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={!!busy}
-            onClick={() => act(p.status === "suspended" ? "reinstate" : "suspend")}
-          >
-            {p.status === "suspended" ? (
+          {p.is_verified ? (
+            <ConfirmButton
+              size="sm"
+              variant="outline"
+              disabled={!!busy}
+              title="Remove the verified badge?"
+              description={`${p.full_name || p.regno} will no longer show as verified to other members.`}
+              confirmLabel="Unverify"
+              onConfirm={() => act("unverify")}
+            >
+              <X className="size-4" />
+              Unverify
+            </ConfirmButton>
+          ) : (
+            <Button size="sm" disabled={!!busy} onClick={() => act("verify")}>
+              <Check className="size-4" />
+              Verify
+            </Button>
+          )}
+          {p.status === "suspended" ? (
+            <Button size="sm" variant="outline" disabled={!!busy} onClick={() => act("reinstate")}>
               <RotateCcw className="size-4" />
-            ) : (
+              Reinstate
+            </Button>
+          ) : (
+            <ConfirmButton
+              size="sm"
+              variant="outline"
+              disabled={!!busy}
+              title="Suspend this member?"
+              description={`${p.full_name || p.regno}'s profile will be hidden from search and matches until you reinstate it.`}
+              confirmLabel="Suspend"
+              onConfirm={() => act("suspend")}
+            >
               <Ban className="size-4" />
-            )}
-            {p.status === "suspended" ? "Reinstate" : "Suspend"}
-          </Button>
+              Suspend
+            </ConfirmButton>
+          )}
           <Button
             size="sm"
             variant="outline"
@@ -344,7 +362,17 @@ export default function AdminMemberPage() {
           <Card>
             <CardContent className="pt-6">
               <h2 className="mb-3 font-heading text-lg font-semibold">Payments</h2>
-              <PaymentsTable profileId={p.id} />
+              <PaymentsTable
+                key={p.subscriptions.map((s) => s.id).join(",")}
+                profileId={p.id}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="pt-6">
+              <h2 className="mb-3 font-heading text-lg font-semibold">Activity</h2>
+              <ActivityLog profileId={p.id} refreshKey={p} />
             </CardContent>
           </Card>
         </div>
@@ -400,12 +428,16 @@ export default function AdminMemberPage() {
                             <Check className="size-3" />
                           </Button>
                         )}
-                        <Button
+                        <ConfirmButton
                           size="sm"
                           variant="outline"
                           className="h-6 flex-1 px-0"
                           disabled={!!busy}
-                          onClick={async () => {
+                          aria-label="Delete photo"
+                          title="Delete this photo?"
+                          description="The photo is removed permanently. The member can upload it again."
+                          confirmLabel="Delete photo"
+                          onConfirm={async () => {
                             setBusy(`photo-${ph.id}`);
                             try {
                               await apiFetch(`/moderation/photos/${ph.id}/`, {
@@ -420,7 +452,7 @@ export default function AdminMemberPage() {
                           }}
                         >
                           <Trash2 className="size-3" />
-                        </Button>
+                        </ConfirmButton>
                       </div>
                     </div>
                   ))}
@@ -471,11 +503,14 @@ export default function AdminMemberPage() {
                         <Check className="size-4" /> Approve
                       </Button>
                     )}
-                    <Button
+                    <ConfirmButton
                       size="sm"
                       variant="outline"
                       disabled={!!busy}
-                      onClick={async () => {
+                      title="Remove this horoscope?"
+                      description="The uploaded horoscope document is deleted permanently. The member can upload a new one."
+                      confirmLabel="Remove"
+                      onConfirm={async () => {
                         setBusy("horo");
                         try {
                           await apiFetch(
@@ -491,7 +526,7 @@ export default function AdminMemberPage() {
                       }}
                     >
                       <Trash2 className="size-4" /> Remove
-                    </Button>
+                    </ConfirmButton>
                   </div>
                 </div>
               )}
@@ -509,140 +544,6 @@ function Stat({ label, value }: { label: string; value: string | number }) {
       <CardContent className="py-3">
         <p className="text-lg font-semibold capitalize">{value}</p>
         <p className="text-xs text-muted-foreground">{label}</p>
-      </CardContent>
-    </Card>
-  );
-}
-
-function PlanManager({
-  profileId,
-  subscriptions,
-  plans,
-  onChange,
-}: {
-  profileId: number;
-  subscriptions: ModerationSubscription[];
-  plans: MembershipPlan[];
-  onChange: () => void;
-}) {
-  const [slug, setSlug] = useState("");
-  const [months, setMonths] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  async function grant() {
-    if (!slug) return;
-    setBusy(true);
-    try {
-      await apiFetch(`/moderation/profiles/${profileId}/grant-plan/`, {
-        method: "POST",
-        body: { plan: slug, months: months ? Number(months) : undefined },
-      });
-      toast.success("Plan granted.");
-      setSlug("");
-      setMonths("");
-      onChange();
-    } catch (err) {
-      handleApiError(err);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function revoke(id: number) {
-    setBusy(true);
-    try {
-      await apiFetch(`/moderation/subscriptions/${id}/revoke/`, { method: "POST" });
-      toast.success("Subscription revoked.");
-      onChange();
-    } catch (err) {
-      handleApiError(err);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const fieldCls =
-    "h-8 rounded-md border bg-background px-2 text-sm outline-none focus-visible:border-ring";
-
-  return (
-    <Card>
-      <CardContent className="space-y-3 pt-6">
-        <h2 className="font-heading text-lg font-semibold">Membership</h2>
-
-        {subscriptions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No subscriptions on record.</p>
-        ) : (
-          <ul className="space-y-1.5 text-sm">
-            {subscriptions.map((s) => (
-              <li
-                key={s.id}
-                className="flex items-center justify-between gap-2 rounded-md border px-2 py-1.5"
-              >
-                <span>
-                  <span className="font-medium">{s.plan}</span>{" "}
-                  <Badge
-                    variant={s.is_current ? "default" : "outline"}
-                    className="ml-1 align-middle"
-                  >
-                    {s.status}
-                  </Badge>
-                  <span className="block text-xs text-muted-foreground">
-                    {s.started_on || "—"} → {s.expires_on || "no expiry"}
-                    {s.is_legacy ? " · legacy" : ""}
-                  </span>
-                </span>
-                {s.is_current && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={busy}
-                    onClick={() => revoke(s.id)}
-                  >
-                    Revoke
-                  </Button>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <div className="space-y-2 rounded-lg border bg-muted/20 p-2">
-          <p className="text-xs font-medium text-muted-foreground">Grant / comp a plan</p>
-          <div className="flex gap-2">
-            <select
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              className={`${fieldCls} flex-1`}
-            >
-              <option value="">Choose plan…</option>
-              {plans.map((pl) => (
-                <option key={pl.slug} value={pl.slug}>
-                  {pl.name} (₹{Number(pl.price_inr).toLocaleString("en-IN")})
-                </option>
-              ))}
-            </select>
-            <input
-              value={months}
-              onChange={(e) => setMonths(e.target.value)}
-              inputMode="numeric"
-              placeholder="Months"
-              className={`${fieldCls} w-20`}
-            />
-          </div>
-          <Button
-            size="sm"
-            className="w-full"
-            disabled={busy || !slug}
-            onClick={grant}
-          >
-            {busy && <Spinner />}
-            Grant plan
-          </Button>
-          <p className="text-[11px] text-muted-foreground">
-            Leave months blank to use the plan&apos;s own duration. Supersedes the
-            current active subscription.
-          </p>
-        </div>
       </CardContent>
     </Card>
   );

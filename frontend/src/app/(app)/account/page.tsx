@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { DeleteAccountCard } from "@/components/account/delete-account-card";
 import { TextField } from "@/components/form/fields";
 import { Container } from "@/components/site/container";
 import { Badge } from "@/components/ui/badge";
@@ -221,6 +222,7 @@ function AccountInner() {
           Back to dashboard
         </Link>
       </p>
+      <DeleteAccountCard />
     </Container>
   );
 }

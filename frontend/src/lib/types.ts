@@ -300,12 +300,23 @@ export interface ModerationPayment {
   status: string;
   environment: string;
   mode: string;
+  bank_ref_num?: string;
   email: string;
   phone: string;
   error_message: string;
   is_legacy: boolean;
   created_at: string;
   completed_at: string | null;
+}
+
+export interface StaffAction {
+  id: number;
+  actor_email: string;
+  action: string;
+  profile_id: number | null;
+  profile_regno: string;
+  data: Record<string, unknown>;
+  created_at: string;
 }
 
 export interface ModerationProfileDetail extends ModerationProfile {

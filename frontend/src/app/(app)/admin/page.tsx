@@ -7,6 +7,7 @@ import { Check, Search, Trash2 } from "lucide-react";
 
 import { GuidedSearch, MultiChips } from "@/components/admin/guided-search";
 import { MemberRow } from "@/components/admin/member-row";
+import { ActivityLog } from "@/components/admin/activity-log";
 import { PaymentsTable } from "@/components/admin/payments-table";
 import {
   BLANK_FILTERS,
@@ -16,6 +17,7 @@ import {
   useMemberList,
 } from "@/components/admin/member-search";
 import { Container } from "@/components/site/container";
+import { ConfirmButton } from "@/components/admin/confirm-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
@@ -26,13 +28,14 @@ import { useReferenceData } from "@/lib/reference";
 import type { ModerationPhoto, ModerationSummary, Paginated } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Tab = "guided" | "directory" | "payments" | "photos" | "horoscopes";
+type Tab = "guided" | "directory" | "payments" | "photos" | "horoscopes" | "activity";
 const TABS: { id: Tab; label: string }[] = [
   { id: "guided", label: "Guided search" },
   { id: "directory", label: "Directory" },
   { id: "payments", label: "Payments" },
   { id: "photos", label: "Photos" },
   { id: "horoscopes", label: "Horoscopes" },
+  { id: "activity", label: "Activity" },
 ];
 
 const fieldCls =
@@ -97,6 +100,7 @@ export default function AdminModerationPage() {
         {tab === "payments" && <PaymentsTable />}
         {tab === "photos" && <PhotosTab onChange={loadSummary} />}
         {tab === "horoscopes" && <HoroscopesTab onChange={loadSummary} />}
+        {tab === "activity" && <ActivityLog />}
       </div>
     </Container>
   );
@@ -357,15 +361,19 @@ function PhotosTab({ onChange }: { onChange: () => void }) {
               >
                 <Check className="size-4" />
               </Button>
-              <Button
+              <ConfirmButton
                 size="sm"
                 variant="outline"
                 className="flex-1"
                 disabled={busy === p.id}
-                onClick={() => reject(p.id)}
+                aria-label="Delete photo"
+                title="Delete this photo?"
+                description="The photo is removed permanently and the member is notified."
+                confirmLabel="Delete photo"
+                onConfirm={() => reject(p.id)}
               >
                 <Trash2 className="size-4" />
-              </Button>
+              </ConfirmButton>
             </div>
           </CardContent>
         </Card>
@@ -440,14 +448,18 @@ function HoroscopesTab({ onChange }: { onChange: () => void }) {
               <Button size="sm" disabled={busy === h.id} onClick={() => act(h.id, "approve")}>
                 <Check className="size-4" /> Approve
               </Button>
-              <Button
+              <ConfirmButton
                 size="sm"
                 variant="outline"
                 disabled={busy === h.id}
-                onClick={() => act(h.id, "reject")}
+                aria-label="Remove horoscope"
+                title="Remove this horoscope?"
+                description="The document is deleted permanently and the member is notified."
+                confirmLabel="Remove"
+                onConfirm={() => act(h.id, "reject")}
               >
                 <Trash2 className="size-4" />
-              </Button>
+              </ConfirmButton>
             </div>
           </CardContent>
         </Card>
