@@ -12,7 +12,6 @@ import {
   Sparkles,
   UserRoundPen,
 } from "lucide-react";
-import { toast } from "sonner";
 
 import { MatchCard } from "@/components/profiles/match-card";
 import { ProfileCardSkeleton } from "@/components/profiles/profile-card";
@@ -201,7 +200,6 @@ function MatchesStrip() {
 }
 
 function VerifyEmailBanner({ email }: { email: string }) {
-  const [sent, setSent] = useState(false);
   return (
     <Card className="mt-6 border-primary/30 bg-primary/5">
       <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
@@ -212,21 +210,8 @@ function VerifyEmailBanner({ email }: { email: string }) {
             your account active.
           </p>
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={sent}
-          onClick={async () => {
-            await apiFetch("/auth/email/verify/resend/", {
-              method: "POST",
-              auth: false,
-              body: { email },
-            });
-            setSent(true);
-            toast.success("Verification email sent.");
-          }}
-        >
-          {sent ? "Sent" : "Resend email"}
+        <Button size="sm" variant="outline" render={<Link href="/verify-email" />}>
+          Enter code
         </Button>
       </CardContent>
     </Card>

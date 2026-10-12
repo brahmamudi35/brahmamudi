@@ -274,6 +274,10 @@ FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", default="http://localhost:3000")
 # Public base URL of this API, used for payment-gateway return URLs.
 BACKEND_BASE_URL = env("BACKEND_BASE_URL", default="http://localhost:8000")
 EMAIL_TOKEN_MAX_AGE_DAYS = env.int("EMAIL_TOKEN_MAX_AGE_DAYS", default=7)
+# Emailed one-time codes (signup verification + password reset).
+OTP_TTL_MINUTES = env.int("OTP_TTL_MINUTES", default=10)
+OTP_MAX_ATTEMPTS = env.int("OTP_MAX_ATTEMPTS", default=5)
+OTP_RESEND_COOLDOWN_SECONDS = env.int("OTP_RESEND_COOLDOWN_SECONDS", default=60)
 
 
 # Django admin (superuser-only control room). Set DJANGO_ADMIN_PATH to something

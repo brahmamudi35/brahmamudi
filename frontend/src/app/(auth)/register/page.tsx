@@ -48,8 +48,8 @@ export default function RegisterPage() {
     try {
       await register(values);
       await login(values.email, values.password);
-      toast.success("Account created. We've emailed you a verification link.");
-      router.replace("/onboarding");
+      toast.success("Account created. Check your email for a 6-digit code.");
+      router.replace("/verify-email?sent=1");
     } catch (err) {
       handleApiError(err, form);
     } finally {

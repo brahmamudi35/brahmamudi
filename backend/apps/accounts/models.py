@@ -68,3 +68,29 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+
+class EmailOTP(models.Model):
+    """A short-lived 6-digit code emailed for verification or password reset.
+
+    Only an HMAC of the code is stored. Issuing a new code for the same
+    (user, purpose) replaces the old one, so at most one is ever live.
+    """
+
+    class Purpose(models.TextChoices):
+        VERIFY_EMAIL = "verify_email", "Verify email"
+        PASSWORD_RESET = "password_reset", "Password reset"
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="email_otps")
+    purpose = models.CharField(max_length=20, choices=Purpose.choices)
+    code_hash = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    attempts = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        db_table = "account_email_otp"
+        indexes = [models.Index(fields=["user", "purpose"])]
+
+    def __str__(self):
+        return f"{self.user_id}:{self.purpose}"

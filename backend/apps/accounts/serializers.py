@@ -3,8 +3,12 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from . import tokens
-from .emails import send_password_reset_email, send_verification_email
+from . import otp, tokens
+from .emails import (
+    send_password_reset_email,
+    send_verification_email,
+    send_verification_email_safely,
+)
 
 User = get_user_model()
 
@@ -48,7 +52,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = User.objects.create_user(**validated_data)
-        send_verification_email(user)
+        send_verification_email_safely(user)
         return user
 
 
@@ -89,13 +93,40 @@ class PasswordResetRequestSerializer(serializers.Serializer):
         # never reveal whether the address exists
 
 
-class PasswordResetConfirmSerializer(serializers.Serializer):
-    uid = serializers.CharField()
-    token = serializers.CharField()
+class _CodeOrTokenMixin:
+    """Shared ``validate`` helper: an emailed OTP (``email`` + ``code``) is the
+    primary path; the old signed-link fields still work for in-flight emails."""
+
+    def _user_from_code(self, attrs, purpose):
+        email = (attrs.get("email") or "").lower()
+        if not email:
+            request = self.context.get("request")
+            if request is not None and request.user.is_authenticated:
+                email = request.user.email
+        if not email:
+            raise serializers.ValidationError({"email": "Enter your email address."})
+        user = User.objects.filter(email=email, is_active=True).first()
+        try:
+            otp.check(user, purpose, attrs["code"])
+        except otp.OTPError as exc:
+            raise serializers.ValidationError({"code": str(exc)}) from None
+        return user
+
+
+class PasswordResetConfirmSerializer(_CodeOrTokenMixin, serializers.Serializer):
+    email = serializers.EmailField(required=False)
+    code = serializers.CharField(required=False, max_length=12)
+    uid = serializers.CharField(required=False)
+    token = serializers.CharField(required=False)
     new_password = serializers.CharField(write_only=True, validators=[validate_password])
 
     def validate(self, attrs):
-        user = tokens.read_password_reset_token(attrs["uid"], attrs["token"])
+        if attrs.get("code"):
+            attrs["user"] = self._user_from_code(attrs, otp.Purpose.PASSWORD_RESET)
+            return attrs
+        user = None
+        if attrs.get("uid") and attrs.get("token"):
+            user = tokens.read_password_reset_token(attrs["uid"], attrs["token"])
         if user is None:
             raise serializers.ValidationError("This reset link is invalid or has expired.")
         attrs["user"] = user
@@ -111,11 +142,16 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         return user
 
 
-class EmailVerifySerializer(serializers.Serializer):
-    token = serializers.CharField()
+class EmailVerifySerializer(_CodeOrTokenMixin, serializers.Serializer):
+    email = serializers.EmailField(required=False)
+    code = serializers.CharField(required=False, max_length=12)
+    token = serializers.CharField(required=False)
 
     def validate(self, attrs):
-        user = tokens.read_email_token(attrs["token"])
+        if attrs.get("code"):
+            attrs["user"] = self._user_from_code(attrs, otp.Purpose.VERIFY_EMAIL)
+            return attrs
+        user = tokens.read_email_token(attrs["token"]) if attrs.get("token") else None
         if user is None:
             raise serializers.ValidationError("This verification link is invalid or has expired.")
         attrs["user"] = user

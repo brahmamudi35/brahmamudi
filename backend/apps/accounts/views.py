@@ -110,7 +110,7 @@ class _ActionView(views.APIView):
 class PasswordResetRequestView(_ActionView):
     throttle_classes = [PasswordResetThrottle]
     serializer_class = PasswordResetRequestSerializer
-    success_detail = "If that email is registered, a reset link is on its way."
+    success_detail = "If that email is registered, a reset code is on its way."
 
 
 class PasswordResetConfirmView(_ActionView):
@@ -125,10 +125,11 @@ class PasswordChangeView(_ActionView):
 
 
 class EmailVerifyView(_ActionView):
+    # a signed-in member may send just {code}; otherwise {email, code}
     serializer_class = EmailVerifySerializer
     success_detail = "Email verified."
 
 
 class ResendVerificationView(_ActionView):
     serializer_class = ResendVerificationSerializer
-    success_detail = "If that email needs verifying, a new link is on its way."
+    success_detail = "If that email needs verifying, a new code is on its way."
