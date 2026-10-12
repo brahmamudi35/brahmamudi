@@ -47,7 +47,7 @@ def build_request_hash(cfg: PayUConfig, *, txnid: str, amount: str, productinfo:
                        firstname: str, email: str, udf: list[str] | None = None) -> str:
     udf = (udf or []) + [""] * _UDF_COUNT
     parts = [cfg.key, txnid, amount, productinfo, firstname, email, *udf[:_UDF_COUNT]]
-    parts += [""] * 6  # udf6-udf10 reserved, always empty
+    parts += [""] * 5  # udf6-udf10 reserved, always empty
     parts.append(cfg.salt)
     return _sha512("|".join(parts))
 
@@ -57,7 +57,7 @@ def verify_response_hash(cfg: PayUConfig, data: dict) -> bool:
     parts = [
         cfg.salt,
         data.get("status", ""),
-        "", "", "", "", "", "",  # udf10-udf6 (reserved, empty)
+        "", "", "", "", "",  # udf10-udf6 (reserved, empty)
         *reversed(udf),
         data.get("email", ""),
         data.get("firstname", ""),

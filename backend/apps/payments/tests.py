@@ -16,6 +16,18 @@ class PayUHashTests(ApiTestCase):
                   firstname="Ravi", email="ravi@example.com", udf=["7"])
         self.assertEqual(build_request_hash(CFG, **kw), build_request_hash(CFG, **kw))
 
+    def test_request_hash_matches_payu_formula(self):
+        # Spelled out exactly as PayU documents it:
+        # sha512(key|txnid|amount|productinfo|firstname|email|udf1|udf2|udf3|udf4|udf5||||||SALT)
+        import hashlib
+        raw = "testkey|abc123|1500.00|Silver|Ravi|ravi@example.com|7|||||" + "|||||" + "testsalt"
+        self.assertEqual(raw.count("|"), 16)
+        self.assertEqual(
+            build_request_hash(CFG, txnid="abc123", amount="1500.00", productinfo="Silver",
+                               firstname="Ravi", email="ravi@example.com", udf=["7"]),
+            hashlib.sha512(raw.encode()).hexdigest(),
+        )
+
     def test_response_hash_roundtrips(self):
         data = {
             "status": "success", "txnid": "abc123", "amount": "1500.00",
@@ -23,12 +35,15 @@ class PayUHashTests(ApiTestCase):
             "udf1": "7", "udf2": "", "udf3": "", "udf4": "", "udf5": "",
         }
         import hashlib
-        udf_rev = ["", "", "", "", "7"]
-        raw = "|".join([
-            CFG.salt, data["status"], "", "", "", "", "", "", *udf_rev,
-            data["email"], data["firstname"], data["productinfo"],
-            data["amount"], data["txnid"], CFG.key,
-        ])
+        # PayU: sha512(SALT|status||||||udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key)
+        raw = (
+            f"{CFG.salt}|{data['status']}||||||" + "|".join([
+                "", "", "", "", "7",
+                data["email"], data["firstname"], data["productinfo"],
+                data["amount"], data["txnid"], CFG.key,
+            ])
+        )
+        self.assertEqual(raw.count("|"), 17)
         data["hash"] = hashlib.sha512(raw.encode()).hexdigest().lower()
         self.assertTrue(verify_response_hash(CFG, data))
 
@@ -86,8 +101,8 @@ class PayUReturnViewTests(ApiTestCase):
             product_info=self.plan.name, first_name="Ravi", email="ravi@example.com",
         )
         import hashlib
-        raw = "|".join([
-            "testsalt", "success", "", "", "", "", "", "", "", "", "", "", "",
+        raw = "testsalt|success||||||" + "|".join([
+            "", "", "", "", "",
             "ravi@example.com", "Ravi", self.plan.name,
             f"{self.plan.price_inr:.2f}", txn.txnid, "testkey",
         ])
