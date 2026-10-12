@@ -1,0 +1,7 @@
+brahmamu_vbss.sql.gz
+legacy_photos_map.json
+media/
+staticfiles/
+.env
+dev.sqlite3
+__pycache__/
