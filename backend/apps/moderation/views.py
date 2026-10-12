@@ -19,7 +19,9 @@ from apps.payments.models import PaymentTransaction
 from apps.profiles.models import HoroscopeDocument, Profile, ProfilePhoto
 from apps.reference.enums import ProfileStatus
 
+from . import audit
 from .filters import ModerationPaymentFilter, ModerationProfileFilter
+from .models import StaffAction
 from .serializers import (
     ModerationHoroscopeSerializer,
     ModerationPaymentSerializer,
@@ -28,8 +30,9 @@ from .serializers import (
     ModerationProfileSerializer,
     ModerationProfileWriteSerializer,
     ModerationSubscriptionSerializer,
+    StaffActionSerializer,
 )
-from .services import grant_plan, revoke_subscription
+from .services import PAYMENT_METHODS, grant_plan, revoke_subscription
 
 _PHOTO_COUNTS = {
     "photo_count": Count("photos", distinct=True),
@@ -89,8 +92,16 @@ class ModerationProfileViewSet(
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
+        before = {f: getattr(instance, f) for f in serializer.validated_data if f != "user"}
+        user_before = {f: getattr(instance.user, f)
+                       for f in serializer.validated_data.get("user", {})}
         serializer.save()
         instance.refresh_from_db()
+        changed = [f for f, v in before.items() if getattr(instance, f) != v]
+        changed += [f"user.{f}" for f, v in user_before.items()
+                    if getattr(instance.user, f) != v]
+        if changed:
+            audit.record(request.user, "edit_profile", instance, fields=sorted(changed))
         return response.Response(
             ModerationProfileDetailSerializer(
                 instance, context=self.get_serializer_context()
@@ -102,6 +113,7 @@ class ModerationProfileViewSet(
         for k, v in fields.items():
             setattr(profile, k, v)
         profile.save(update_fields=list(fields))
+        audit.record(request.user, self.action, profile)
         return response.Response(ModerationProfileSerializer(profile).data)
 
     @decorators.action(detail=True, methods=["post"])
@@ -128,7 +140,11 @@ class ModerationProfileViewSet(
     @extend_schema(request=OpenApiTypes.OBJECT, responses=ModerationSubscriptionSerializer)
     @decorators.action(detail=True, methods=["post"], url_path="grant-plan")
     def grant_plan(self, request, pk=None):
-        """Body: {"plan": "<slug>", "months": <int, optional>}."""
+        """Body: {"plan": "<slug>", "months"?: int, "amount"?: number,
+        "method"?: upi|cash|bank|cheque|comp, "reference"?: str, "note"?: str}.
+
+        Always writes a ``manual`` PaymentTransaction alongside the subscription;
+        amount 0 / method "comp" records a complimentary grant."""
         profile = self.get_object()
         slug = request.data.get("plan")
         plan = MembershipPlan.objects.filter(slug=slug).first()
@@ -139,7 +155,26 @@ class ModerationProfileViewSet(
             months = int(months) if months not in (None, "") else None
         except (TypeError, ValueError):
             raise ValidationError({"months": "Must be a whole number."})
-        sub = grant_plan(profile, plan, months=months, actor=request.user)
+        try:
+            amount = float(request.data.get("amount") or 0)
+        except (TypeError, ValueError):
+            raise ValidationError({"amount": "Must be a number."})
+        if amount < 0:
+            raise ValidationError({"amount": "Can't be negative."})
+        method = (request.data.get("method") or ("comp" if amount == 0 else "")).lower()
+        if method not in PAYMENT_METHODS:
+            raise ValidationError({"method": f"One of: {', '.join(PAYMENT_METHODS)}."})
+        if method == "comp" and amount:
+            raise ValidationError({"amount": "A complimentary grant has no amount."})
+        if method != "comp" and not amount:
+            raise ValidationError({"amount": "Enter the amount received."})
+        reference = str(request.data.get("reference") or "")[:40]
+        note = str(request.data.get("note") or "")[:300]
+        sub = grant_plan(profile, plan, months=months, actor=request.user,
+                         amount=amount, method=method, reference=reference, note=note)
+        audit.record(request.user, "grant_plan", profile, plan=plan.slug, months=months,
+                     amount=amount, method=method, reference=reference, note=note,
+                     subscription=sub.pk, payment=sub.payment_id)
         return response.Response(
             ModerationSubscriptionSerializer(sub).data, status=201
         )
@@ -163,7 +198,27 @@ class ModerationSubscriptionViewSet(
     @decorators.action(detail=True, methods=["post"])
     def revoke(self, request, pk=None):
         sub = revoke_subscription(self.get_object())
+        audit.record(request.user, "revoke_plan", sub.profile, plan=sub.plan.slug,
+                     subscription=sub.pk)
         return response.Response(self.get_serializer(sub).data)
+
+
+class ModerationAuditViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    """Staff action trail. ?profile=<id>, ?action=<name>, ?actor=<email>."""
+
+    permission_classes = [permissions.IsAdminUser]
+    serializer_class = StaffActionSerializer
+
+    def get_queryset(self):
+        qs = StaffAction.objects.all()
+        params = self.request.query_params
+        if params.get("profile"):
+            qs = qs.filter(profile_id=params["profile"])
+        if params.get("action"):
+            qs = qs.filter(action=params["action"])
+        if params.get("actor"):
+            qs = qs.filter(actor_email__iexact=params["actor"])
+        return qs
 
 
 class ModerationPaymentViewSet(
@@ -198,6 +253,7 @@ class ModerationPhotoViewSet(
         photo = self.get_object()
         photo.is_approved = True
         photo.save(update_fields=["is_approved"])
+        audit.record(request.user, "approve_photo", photo.profile, photo=photo.pk)
         from apps.notifications.services import notify
 
         notify(photo.profile, "photo_approved",
@@ -206,6 +262,7 @@ class ModerationPhotoViewSet(
 
     def perform_destroy(self, instance):
         profile = instance.profile
+        audit.record(self.request.user, "reject_photo", profile, photo=instance.pk)
         instance.image.delete(save=False)
         instance.delete()
         from apps.notifications.services import notify
@@ -233,6 +290,7 @@ class ModerationHoroscopeViewSet(
         doc = self.get_object()
         doc.is_approved = True
         doc.save(update_fields=["is_approved"])
+        audit.record(request.user, "approve_horoscope", doc.profile)
         from apps.notifications.services import notify
 
         notify(doc.profile, "photo_approved",
@@ -241,6 +299,7 @@ class ModerationHoroscopeViewSet(
 
     def perform_destroy(self, instance):
         profile = instance.profile
+        audit.record(self.request.user, "reject_horoscope", profile)
         instance.file.delete(save=False)
         instance.delete()
         from apps.notifications.services import notify
@@ -278,7 +337,9 @@ class ModerationSummaryView(viewsets.ViewSet):
                 created_at__gte=today
             ).count(),
             "paid_members": paid,
+            # complimentary staff grants are recorded at 0; don't count them as payments
             "payments_succeeded_this_month": PaymentTransaction.objects.filter(
-                status=PaymentTransaction.Status.SUCCESS, created_at__gte=month_start
+                status=PaymentTransaction.Status.SUCCESS, created_at__gte=month_start,
+                amount__gt=0,
             ).count(),
         })

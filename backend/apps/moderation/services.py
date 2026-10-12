@@ -10,16 +10,25 @@ from __future__ import annotations
 from datetime import date, timedelta
 
 from django.db import transaction
+from django.utils import timezone
 
 from apps.memberships.models import MembershipPlan, Subscription
+from apps.payments.models import PaymentTransaction
 from apps.profiles.models import Profile
+
+# How an offline payment was received ("comp" = complimentary, no money).
+PAYMENT_METHODS = ("upi", "cash", "bank", "cheque", "comp")
 
 
 @transaction.atomic
 def grant_plan(profile: Profile, plan: MembershipPlan, *, months: int | None = None,
-               actor=None) -> Subscription:
+               actor=None, amount: float = 0, method: str = "comp",
+               reference: str = "", note: str = "") -> Subscription:
     """Give `profile` an active subscription to `plan`, superseding any current
-    one, and make the profile live. `months` overrides the plan's own duration."""
+    one, and make the profile live. `months` overrides the plan's own duration.
+
+    Also records a ``manual`` PaymentTransaction (the money received offline, or
+    0 for a complimentary grant) so every membership has a payment row."""
     start = date.today()
     if months is None:
         expires = plan.expiry_from(start)
@@ -32,12 +41,34 @@ def grant_plan(profile: Profile, plan: MembershipPlan, *, months: int | None = N
         profile=profile, status=Subscription.Status.ACTIVE
     ).update(status=Subscription.Status.EXPIRED)
 
+    now = timezone.now()
+    payment = PaymentTransaction.objects.create(
+        profile=profile,
+        plan=plan,
+        amount=amount,
+        product_info=f"{plan.name} (staff grant)",
+        status=PaymentTransaction.Status.SUCCESS,
+        environment="manual",
+        mode=method,
+        bank_ref_num=reference,
+        first_name=profile.first_name,
+        email=profile.user.email,
+        phone=profile.contact_phone or profile.user.phone,
+        raw_request={
+            "granted_by": getattr(actor, "email", ""),
+            "months": months,
+            "note": note,
+        },
+        completed_at=now,
+    )
+
     sub = Subscription.objects.create(
         profile=profile,
         plan=plan,
         status=Subscription.Status.ACTIVE,
         started_on=start,
         expires_on=expires,
+        payment=payment,
     )
 
     profile.status = "active"

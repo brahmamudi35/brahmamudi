@@ -1,6 +1,7 @@
 from rest_framework.routers import DefaultRouter
 
 from .views import (
+    ModerationAuditViewSet,
     ModerationHoroscopeViewSet,
     ModerationPaymentViewSet,
     ModerationPhotoViewSet,
@@ -15,6 +16,7 @@ router.register("moderation/subscriptions", ModerationSubscriptionViewSet, basen
 router.register("moderation/payments", ModerationPaymentViewSet, basename="moderation-payment")
 router.register("moderation/photos", ModerationPhotoViewSet, basename="moderation-photo")
 router.register("moderation/horoscopes", ModerationHoroscopeViewSet, basename="moderation-horoscope")
+router.register("moderation/audit", ModerationAuditViewSet, basename="moderation-audit")
 router.register("moderation/summary", ModerationSummaryView, basename="moderation-summary")
 
 urlpatterns = router.urls

@@ -7,6 +7,8 @@ from apps.memberships.models import Subscription
 from apps.payments.models import PaymentTransaction
 from apps.profiles.models import HoroscopeDocument, PartnerPreference, Profile, ProfilePhoto
 
+from .models import StaffAction
+
 
 def _active_plan_name(profile) -> str:
     sub = next(
@@ -64,9 +66,19 @@ class ModerationPaymentSerializer(serializers.ModelSerializer):
         model = PaymentTransaction
         fields = (
             "id", "txnid", "mihpayid", "profile_id", "regno", "profile_name",
-            "plan", "amount", "status", "environment", "mode", "email", "phone",
-            "error_message", "is_legacy", "created_at", "completed_at",
+            "plan", "amount", "status", "environment", "mode", "bank_ref_num",
+            "email", "phone", "error_message", "is_legacy", "created_at",
+            "completed_at",
         )
+
+
+class StaffActionSerializer(serializers.ModelSerializer):
+    profile_id = serializers.IntegerField(read_only=True, allow_null=True)
+
+    class Meta:
+        model = StaffAction
+        fields = ("id", "actor_email", "action", "profile_id", "profile_regno",
+                  "data", "created_at")
 
 
 class _PartnerPreferenceSerializer(serializers.ModelSerializer):
