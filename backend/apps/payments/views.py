@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.db import transaction
 from django.shortcuts import redirect
@@ -13,6 +15,8 @@ from apps.memberships.models import MembershipPlan
 
 from . import services
 from .models import PaymentTransaction
+
+logger = logging.getLogger(__name__)
 
 
 @extend_schema(request=OpenApiTypes.OBJECT, responses={201: OpenApiTypes.OBJECT})
@@ -41,8 +45,15 @@ class PayUInitiateView(views.APIView):
                 email=request.data.get("email") or request.user.email,
                 phone=request.data.get("phone") or profile.contact_phone,
             )
-        except RuntimeError as exc:
-            return Response({"detail": str(exc)}, status=503)
+        except RuntimeError:
+            logger.exception("PayU checkout unavailable")
+            return Response(
+                {
+                    "detail": "Online payment is temporarily unavailable. Please try again "
+                    "later, or call / WhatsApp us on +91 82971 11166 to upgrade."
+                },
+                status=503,
+            )
         return Response({"txnid": txn.txnid, "form": form}, status=201)
 
 
