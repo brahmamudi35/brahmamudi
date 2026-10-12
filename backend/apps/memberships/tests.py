@@ -25,4 +25,4 @@ class MembershipPlanApiTests(ApiTestCase):
         resp = self.client.get("/api/v1/membership-plans/my_subscription/")
         self.assertEqual(resp.data["subscription"]["plan"]["slug"], "gold")
         self.assertEqual(resp.data["subscription"]["status"], "active")
-        self.assertEqual(resp.data["contact_quota"]["limit"], 75)
+        self.assertEqual(resp.data["contact_quota"]["limit"], 50)

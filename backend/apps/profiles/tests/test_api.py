@@ -70,13 +70,13 @@ class ContactUnlockTests(ApiTestCase):
         self.assertEqual(resp.data["code"], "subscription_required")
 
     def test_unlock_with_gold_plan_reveals_contact_and_spends_quota(self):
-        give_subscription(self.him, "gold")  # 75 contact views
+        give_subscription(self.him, "gold")  # 50 contact views
         self.client.force_authenticate(self.him.user)
         resp = self.client.post(f"/api/v1/profiles/{self.her.pk}/unlock-contact/")
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         self.assertEqual(resp.data["contact_phone"], "99999-00000")
         self.assertEqual(resp.data["quota"]["used"], 1)
-        self.assertEqual(resp.data["quota"]["remaining"], 74)
+        self.assertEqual(resp.data["quota"]["remaining"], 49)
 
         # unlocking again is idempotent - no extra quota spent
         self.client.post(f"/api/v1/profiles/{self.her.pk}/unlock-contact/")
