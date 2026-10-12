@@ -9,6 +9,7 @@ export const SITE = {
   phone: "+91 95501 11166",
   whatsapp: "+91 82971 11166",
   hours: "Monday – Saturday, 10:00 am – 6:00 pm IST",
+  grievanceOfficer: "Sai Musunuru",
   jurisdiction: "Hyderabad, Telangana",
   legalUpdated: "12 October 2026",
 } as const;

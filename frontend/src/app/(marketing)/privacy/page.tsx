@@ -169,7 +169,9 @@ export default function PrivacyPage() {
             contact our Grievance Officer:
           </p>
           <p className="mt-3">
-            Grievance Officer, {SITE.operator}
+            <strong>{SITE.grievanceOfficer}</strong>, Grievance Officer
+            <br />
+            {SITE.operator}
             <br />
             {SITE.address.join(", ")}
             <br />
