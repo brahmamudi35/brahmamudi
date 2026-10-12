@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { API_BASE, apiFetch } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { Completeness, Profile, SuggestedProfile } from "@/lib/types";
 
@@ -121,24 +121,6 @@ function StaffPanel() {
         title="Browse members"
         desc="The full member search"
       />
-      <a
-        href={`${API_BASE.replace(/\/api\/v1\/?$/, "")}/admin/`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="sm:col-span-2"
-      >
-        <Card className="transition-colors hover:border-primary/40 hover:bg-accent/30">
-          <CardContent className="flex items-center gap-3 py-4">
-            <ChevronRight className="size-5 text-primary" />
-            <div className="flex-1">
-              <p className="text-sm font-medium">Django admin</p>
-              <p className="text-xs text-muted-foreground">
-                Full data access, bulk actions, CSV export (opens the backend)
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </a>
     </div>
   );
 }
