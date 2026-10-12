@@ -101,7 +101,18 @@ export default function RegisterPage() {
           </FieldGroup>
         </form>
         <GoogleAuthButton text="signup_with" />
-        <p className="mt-6 text-center text-sm text-muted-foreground">
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          By creating an account you agree to our{" "}
+          <Link href="/terms" className="text-primary hover:underline">
+            terms of service
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" className="text-primary hover:underline">
+            privacy policy
+          </Link>
+          .
+        </p>
+        <p className="mt-4 text-center text-sm text-muted-foreground">
           Already registered?{" "}
           <Link href="/login" className="text-primary hover:underline">
             Sign in

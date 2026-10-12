@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Check, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
@@ -169,7 +170,15 @@ export default function MembershipPage() {
 
       <p className="mt-6 text-xs text-muted-foreground">
         Payments are processed securely by PayU. Your membership activates as soon
-        as payment is confirmed.
+        as payment is confirmed and does not renew automatically. See our{" "}
+        <Link href="/refund-policy" className="text-primary hover:underline">
+          refund &amp; cancellation policy
+        </Link>{" "}
+        and{" "}
+        <Link href="/terms" className="text-primary hover:underline">
+          terms
+        </Link>
+        .
       </p>
     </Container>
   );

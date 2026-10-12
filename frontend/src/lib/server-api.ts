@@ -1,4 +1,5 @@
 import { API_BASE } from "@/lib/api";
+import type { MembershipPlan } from "@/lib/types";
 
 /** Server-side fetch of public, unauthenticated data (safe to cache). */
 async function publicGet<T>(path: string, revalidate = 600): Promise<T | null> {
@@ -19,4 +20,8 @@ export interface PublicStats {
 
 export function getStats() {
   return publicGet<PublicStats>("/stats/");
+}
+
+export function getPlans() {
+  return publicGet<MembershipPlan[]>("/membership-plans/");
 }
