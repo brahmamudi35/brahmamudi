@@ -116,8 +116,9 @@ export default function TermsPage() {
             future purchases — changes do not affect a membership already paid for.
           </li>
           <li>
-            Payments are processed by our payment partner PayU. We do not see or
-            store your card, UPI or bank credentials.
+            Payment is made by UPI or bank transfer to the account shown on the
+            membership page; your plan is activated once we confirm the payment.
+            Never share your UPI PIN or OTP with anyone, including our staff.
           </li>
           <li>
             Refunds and cancellations are covered by our{" "}

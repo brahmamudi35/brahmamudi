@@ -14,5 +14,30 @@ export const SITE = {
   legalUpdated: "12 October 2026",
 } as const;
 
+/** How members pay for a membership.
+ *  - "manual": pay by UPI / bank transfer, WhatsApp the screenshot, staff
+ *    activate the plan from the member desk (Grant plan).
+ *  - "payu": online checkout through PayU (needs an approved merchant account).
+ */
+export const PAYMENT = {
+  mode: "manual" as "manual" | "payu",
+  // GPay / PhonePe number members pay to (shown as-is).
+  upiPhone: "+91 82971 11166",
+  // Exact UPI ID (e.g. "8297111166@ybl"). When set, the page also shows a QR
+  // code and a tap-to-pay button with the amount filled in.
+  upiId: "",
+  payeeName: "B. Srihari",
+  bank: {
+    accountName: "B. Srihari",
+    bankName: "ICICI Bank",
+    branch: "Kalyan Nagar",
+    accountNumber: "111101000600",
+    ifsc: "ICIC0001111",
+  },
+  // WhatsApp number the payment screenshot goes to.
+  whatsapp: "+91 82971 11166",
+  activationTime: "within a few hours (Monday – Saturday)",
+};
+
 export const telHref = (n: string) => `tel:${n.replace(/\s/g, "")}`;
 export const waHref = (n: string) => `https://wa.me/${n.replace(/\D/g, "")}`;

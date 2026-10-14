@@ -53,9 +53,10 @@ export default function PrivacyPage() {
             details you unlock.
           </li>
           <li>
-            <strong>Payments</strong> — plan, amount, date and the transaction
-            reference and status returned by PayU. We never receive or store
-            your card, UPI or net-banking credentials.
+            <strong>Payments</strong> — plan, amount, date, the UPI / bank
+            transaction reference and the payment screenshot you send us on
+            WhatsApp. We never receive your card, UPI PIN or net-banking
+            credentials.
           </li>
           <li>
             <strong>Technical data</strong> — IP address, browser type and basic
@@ -103,9 +104,9 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Service providers</strong> that process data for us under
-            contract: PayU (payments), Railway and Vercel (hosting and
-            databases), Resend (email delivery) and Google (sign-in, if you use
-            it). Some of these providers store data on servers outside India.
+            contract: Railway and Vercel (hosting and
+            databases), Resend (email delivery), Google (sign-in, if you use
+            it) and WhatsApp (when you message us). Some of these providers store data on servers outside India.
           </li>
           <li>
             <strong>Authorities</strong>, when required by law or to protect

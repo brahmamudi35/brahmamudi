@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Check, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
+import { ManualPaymentDialog } from "@/components/membership/manual-payment-dialog";
 import { Container } from "@/components/site/container";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { apiFetch } from "@/lib/api";
-import type { MembershipPlan, MySubscription, PayUCheckout } from "@/lib/types";
+import { useAuth } from "@/lib/auth";
+import { PAYMENT } from "@/lib/site-info";
+import type { MembershipPlan, MySubscription, PayUCheckout, Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 function planPerks(p: MembershipPlan): string[] {
@@ -34,6 +37,16 @@ export default function MembershipPage() {
   const [plans, setPlans] = useState<MembershipPlan[] | null>(null);
   const [mine, setMine] = useState<MySubscription | null>(null);
   const [busyPlan, setBusyPlan] = useState<number | null>(null);
+  const [paying, setPaying] = useState<MembershipPlan | null>(null);
+  const [regno, setRegno] = useState("");
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!user?.has_profile) return;
+    apiFetch<Profile>("/profiles/me/")
+      .then((p) => setRegno(p.regno))
+      .catch(() => {});
+  }, [user?.has_profile]);
 
   useEffect(() => {
     apiFetch<MembershipPlan[]>("/membership-plans/", { auth: false })
@@ -45,6 +58,14 @@ export default function MembershipPage() {
   }, []);
 
   async function upgrade(plan: MembershipPlan) {
+    if (!user?.has_profile) {
+      toast.error("Create your profile first, then choose a plan.");
+      return;
+    }
+    if (PAYMENT.mode === "manual") {
+      setPaying(plan);
+      return;
+    }
     setBusyPlan(plan.id);
     try {
       const { form } = await apiFetch<PayUCheckout>("/payments/payu/initiate/", {
@@ -169,8 +190,10 @@ export default function MembershipPage() {
       </div>
 
       <p className="mt-6 text-xs text-muted-foreground">
-        Payments are processed securely by PayU. Your membership activates as soon
-        as payment is confirmed and does not renew automatically. See our{" "}
+        {PAYMENT.mode === "manual"
+          ? "Pay by UPI or bank transfer and send us the screenshot on WhatsApp — we activate your membership once the payment is confirmed."
+          : "Payments are processed securely by PayU. Your membership activates as soon as payment is confirmed."}{" "}
+        Memberships do not renew automatically. See our{" "}
         <Link href="/refund-policy" className="text-primary hover:underline">
           refund &amp; cancellation policy
         </Link>{" "}
@@ -180,6 +203,13 @@ export default function MembershipPage() {
         </Link>
         .
       </p>
+
+      <ManualPaymentDialog
+        plan={paying}
+        regno={regno}
+        email={user?.email ?? ""}
+        onOpenChange={(open) => !open && setPaying(null)}
+      />
     </Container>
   );
 }

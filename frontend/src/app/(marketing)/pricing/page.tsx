@@ -107,12 +107,13 @@ export default async function PricingPage() {
 
       <div className="mx-auto mt-12 max-w-2xl space-y-2 text-center text-sm text-muted-foreground">
         <p>
-          All prices are in Indian Rupees (INR). Payments are
-          processed securely by PayU (cards, UPI, net banking, wallets). A membership is a
-          one-time payment for the validity shown — it does not renew automatically.
+          All prices are in Indian Rupees (INR). Pay by UPI (GPay, PhonePe or any UPI
+          app) or bank transfer and send us the payment screenshot on WhatsApp. A
+          membership is a one-time payment for the validity shown — it does not renew
+          automatically.
         </p>
         <p>
-          Membership starts as soon as payment succeeds. See our{" "}
+          Your membership starts as soon as we confirm the payment. See our{" "}
           <Link href="/refund-policy" className="text-primary hover:underline">refund &amp; cancellation policy</Link>{" "}
           and <Link href="/terms" className="text-primary hover:underline">terms of service</Link>.
           Questions? Call {SITE.phone} or <Link href="/contact" className="text-primary hover:underline">contact us</Link>.
