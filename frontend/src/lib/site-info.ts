@@ -25,8 +25,9 @@ export const PAYMENT = {
   upiPhone: "+91 82971 11166",
   // Exact UPI ID (e.g. "8297111166@ybl"). When set, the page also shows a QR
   // code and a tap-to-pay button with the amount filled in.
-  upiId: "",
-  payeeName: "B. Srihari",
+  upiId: "brahmamudi36-2@oksbi",
+  upiName: "brahma mudi", // name the UPI ID is registered under (SBI a/c ending 7005)
+  payeeName: "B. Srihari", // name behind the GPay / PhonePe number
   bank: {
     accountName: "B. Srihari",
     bankName: "ICICI Bank",

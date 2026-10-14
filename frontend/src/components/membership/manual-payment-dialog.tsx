@@ -20,14 +20,16 @@ const inr = (v: string | number) => `₹${Number(v).toLocaleString("en-IN")}`;
 /** upi://pay link with the amount pre-filled (only when a UPI ID is configured). */
 export function upiLink(plan: MembershipPlan, regno: string) {
   if (!PAYMENT.upiId) return null;
-  const q = new URLSearchParams({
-    pa: PAYMENT.upiId,
-    pn: PAYMENT.payeeName,
-    am: Number(plan.price_inr).toFixed(2),
-    cu: "INR",
-    tn: `brahmamudi ${plan.name} ${regno}`.trim(),
-  });
-  return `upi://pay?${q.toString()}`;
+  // Built by hand: UPI apps expect a literal "@" in pa and %20 (not "+") for
+  // spaces, which URLSearchParams would not produce.
+  const params: [string, string][] = [
+    ["pa", PAYMENT.upiId],
+    ["pn", encodeURIComponent(PAYMENT.upiName)],
+    ["am", Number(plan.price_inr).toFixed(2)],
+    ["cu", "INR"],
+    ["tn", encodeURIComponent(`brahmamudi ${plan.name} ${regno}`.trim())],
+  ];
+  return `upi://pay?${params.map(([k, v]) => `${k}=${v}`).join("&")}`;
 }
 
 /** The WhatsApp message the member sends along with the screenshot. */
@@ -132,6 +134,7 @@ export function ManualPaymentDialog({
                     Pay {amount} with a UPI app
                   </Button>
                   <CopyRow label="UPI ID" value={PAYMENT.upiId} />
+                  <p className="text-xs text-muted-foreground">Name: {PAYMENT.upiName}</p>
                 </div>
               )}
               <CopyRow label="GPay / PhonePe number" value={PAYMENT.upiPhone} />

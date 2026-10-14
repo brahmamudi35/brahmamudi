@@ -37,6 +37,9 @@ describe("manual payment", () => {
     expect(link.startsWith("upi://pay?")).toBe(true);
     const q = new URLSearchParams(link.slice("upi://pay?".length));
     expect(q.get("pa")).toBe("8297111166@ybl");
+    expect(q.get("pn")).toBe(PAYMENT.upiName);
+    expect(link).toContain("pa=8297111166@ybl&"); // literal @, as UPI apps expect
+    expect(link).not.toContain("+");
     expect(q.get("am")).toBe("1450.00");
     expect(q.get("cu")).toBe("INR");
     PAYMENT.upiId = saved;
@@ -48,6 +51,8 @@ describe("manual payment", () => {
     );
     expect(await screen.findByText("Pay ₹1,450 for Silver")).toBeInTheDocument();
     expect(screen.getByText(PAYMENT.upiPhone)).toBeInTheDocument();
+    expect(screen.getByText("brahmamudi36-2@oksbi")).toBeInTheDocument();
+    expect(await screen.findByAltText("UPI QR code")).toBeInTheDocument();
     expect(screen.getByText(PAYMENT.bank.accountNumber)).toBeInTheDocument();
     expect(screen.getByText(PAYMENT.bank.ifsc)).toBeInTheDocument();
 
