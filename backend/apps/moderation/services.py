@@ -7,6 +7,7 @@ for someone who paid offline.
 
 from __future__ import annotations
 
+import logging
 from datetime import date, timedelta
 
 from django.db import transaction
@@ -18,6 +19,8 @@ from apps.profiles.models import Profile
 
 # How an offline payment was received ("comp" = complimentary, no money).
 PAYMENT_METHODS = ("upi", "cash", "bank", "cheque", "comp")
+
+log = logging.getLogger(__name__)
 
 
 @transaction.atomic
@@ -83,7 +86,34 @@ def grant_plan(profile: Profile, plan: MembershipPlan, *, months: int | None = N
         text=f"Your {plan.name} membership is active",
         url="/membership", data={"plan": plan.slug, "by": "staff"},
     )
+    transaction.on_commit(lambda: _email_activation(profile, plan, expires, amount))
     return sub
+
+
+def _email_activation(profile, plan, expires, amount) -> None:
+    """Best-effort "your membership is active" email (members paying offline
+    are waiting on WhatsApp and may not open the site)."""
+    from django.conf import settings
+    from django.core.mail import send_mail
+
+    until = expires.strftime("%d %b %Y") if expires else "no expiry"
+    paid = f"We have received your payment of Rs {amount:,.0f}. " if amount else ""
+    try:
+        send_mail(
+            subject=f"Your brahmamudi {plan.name} membership is active",
+            message="\n\n".join([
+                f"Hello {profile.first_name or 'there'},",
+                f"{paid}Your {plan.name} membership is now active until {until}.",
+                "You can now view contact details of matching profiles:\n"
+                f"{settings.FRONTEND_BASE_URL.rstrip('/')}/membership",
+                "Thank you,\nbrahmamudi",
+            ]),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[profile.user.email],
+            fail_silently=False,
+        )
+    except Exception:  # noqa: BLE001
+        log.exception("activation email failed for profile %s", profile.pk)
 
 
 def revoke_subscription(sub: Subscription) -> Subscription:

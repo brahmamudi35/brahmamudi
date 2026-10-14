@@ -91,6 +91,18 @@ class GrantPlanPaymentRecordTests(ApiTestCase):
         self.assertEqual((r1.status_code, r2.status_code, r3.status_code), (400, 400, 400))
         self.assertFalse(PaymentTransaction.objects.exists())
 
+    def test_grant_emails_the_member(self):
+        from django.core import mail
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self.client.post(self.url, {"plan": "silver", "amount": 1450, "method": "upi"},
+                             format="json")
+        self.assertEqual(len(mail.outbox), 1)
+        msg = mail.outbox[0]
+        self.assertEqual(msg.to, [self.p.user.email])
+        self.assertIn("Silver membership is active", msg.subject)
+        self.assertIn("Rs 1,450", msg.body)
+
     def test_revoke_is_recorded(self):
         sub_id = self.client.post(self.url, {"plan": "gold"}, format="json").data["id"]
         self.client.post(f"/api/v1/moderation/subscriptions/{sub_id}/revoke/")
