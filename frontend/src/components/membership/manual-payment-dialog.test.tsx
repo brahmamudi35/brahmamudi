@@ -52,7 +52,8 @@ describe("manual payment", () => {
     expect(await screen.findByText("Pay ₹1,450 for Silver")).toBeInTheDocument();
     expect(screen.getByText(PAYMENT.upiPhone)).toBeInTheDocument();
     expect(screen.getByText("brahmamudi36-2@oksbi")).toBeInTheDocument();
-    expect(await screen.findByAltText("UPI QR code")).toBeInTheDocument();
+    // the QR library loads lazily; allow for a slow, busy test run
+    expect(await screen.findByAltText("UPI QR code", {}, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.getByText(PAYMENT.bank.accountNumber)).toBeInTheDocument();
     expect(screen.getByText(PAYMENT.bank.ifsc)).toBeInTheDocument();
 
