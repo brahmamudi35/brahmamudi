@@ -46,6 +46,13 @@ const NAV = [
   { href: "/shortlist", label: "Shortlist", icon: Star },
   { href: "/visitors", label: "Visitors", icon: Eye },
   { href: "/saved-searches", label: "Saved", icon: Bookmark },
+  { href: "/membership", label: "Membership", icon: Sparkles },
+];
+
+// A staff account without its own member profile only needs the desk.
+const STAFF_NAV = [
+  { href: "/admin", label: "Admin", icon: ShieldCheck },
+  { href: "/search", label: "Browse members", icon: Search },
 ];
 
 export function AppHeader() {
@@ -53,6 +60,12 @@ export function AppHeader() {
   const router = useRouter();
   const pathname = usePathname();
   const { resolvedTheme, setTheme } = useTheme();
+  const staffOnly = !!user?.is_staff && !user?.has_profile;
+  const links = staffOnly
+    ? STAFF_NAV
+    : user?.is_staff
+      ? [...NAV, { href: "/admin", label: "Admin", icon: ShieldCheck }]
+      : NAV;
 
   const navLink = (href: string, label: string, Icon: typeof Search) => {
     const active = pathname === href || pathname.startsWith(href + "/");
@@ -77,16 +90,14 @@ export function AppHeader() {
     <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur">
       <Container className="flex h-16 items-center justify-between gap-4">
         <div className="flex items-center gap-6">
-          <Logo href="/dashboard" />
-          <nav className="hidden items-center gap-1 md:flex">
-            {NAV.map((n) => navLink(n.href, n.label, n.icon))}
-            {navLink("/membership", "Membership", Sparkles)}
-            {user?.is_staff && navLink("/admin", "Admin", ShieldCheck)}
+          <Logo href={staffOnly ? "/admin" : "/dashboard"} />
+          <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
+            {links.map((n) => navLink(n.href, n.label, n.icon))}
           </nav>
         </div>
 
         <div className="flex items-center gap-1.5">
-          <NotificationBell />
+          {!staffOnly && <NotificationBell />}
           <Button
             variant="ghost"
             size="icon"
@@ -110,12 +121,16 @@ export function AppHeader() {
               <DropdownMenuItem onClick={() => router.push("/dashboard")}>
                 Dashboard
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push("/onboarding")}>
-                Edit profile
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push("/profile/photos")}>
-                Photos
-              </DropdownMenuItem>
+              {!staffOnly && (
+                <>
+                  <DropdownMenuItem onClick={() => router.push("/onboarding")}>
+                    Edit profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push("/profile/photos")}>
+                    Photos
+                  </DropdownMenuItem>
+                </>
+              )}
               <DropdownMenuItem onClick={() => router.push("/account")}>
                 Account &amp; password
               </DropdownMenuItem>
@@ -145,12 +160,11 @@ export function AppHeader() {
             <SheetContent side="right">
               <SheetHeader>
                 <SheetTitle>
-                  <Logo href="/dashboard" />
+                  <Logo href={staffOnly ? "/admin" : "/dashboard"} />
                 </SheetTitle>
               </SheetHeader>
-              <nav className="mt-4 flex flex-col gap-1 px-2">
-                {NAV.map((n) => navLink(n.href, n.label, n.icon))}
-                {navLink("/membership", "Membership", Sparkles)}
+              <nav aria-label="Mobile" className="mt-4 flex flex-col gap-1 px-2">
+                {links.map((n) => navLink(n.href, n.label, n.icon))}
               </nav>
             </SheetContent>
           </Sheet>
