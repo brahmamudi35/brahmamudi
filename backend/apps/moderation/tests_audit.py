@@ -107,3 +107,27 @@ class GrantPlanPaymentRecordTests(ApiTestCase):
         sub_id = self.client.post(self.url, {"plan": "gold"}, format="json").data["id"]
         self.client.post(f"/api/v1/moderation/subscriptions/{sub_id}/revoke/")
         self.assertTrue(StaffAction.objects.filter(action="revoke_plan", profile=self.p).exists())
+
+
+class MemberEditKeepsDateOfBirthTests(ApiTestCase):
+    """Regression: the detail API didn't return date_of_birth, so the staff
+    edit form re-submitted it empty and wiped the member's DOB."""
+
+    def test_round_trip_edit_keeps_dob(self):
+        from datetime import date
+
+        self.client.force_authenticate(make_user(is_staff=True))
+        p = make_profile(gender=Gender.MALE, date_of_birth=date(1993, 8, 8), occupation="Engineer")
+        detail = self.client.get(f"/api/v1/moderation/profiles/{p.pk}/").data
+        self.assertEqual(detail["date_of_birth"], "1993-08-08")
+
+        # what the form sends back: every field as loaded, one of them changed
+        body = {k: detail[k] for k in ("first_name", "surname", "gender", "date_of_birth",
+                                       "marital_status", "occupation")}
+        body["occupation"] = "Chartered Accountant"
+        resp = self.client.patch(f"/api/v1/moderation/profiles/{p.pk}/", body, format="json")
+        self.assertEqual(resp.status_code, 200)
+        p.refresh_from_db()
+        self.assertEqual(p.date_of_birth, date(1993, 8, 8))
+        self.assertEqual(p.occupation, "Chartered Accountant")
+        self.assertEqual(StaffAction.objects.get(action="edit_profile").data["fields"], ["occupation"])

@@ -100,7 +100,7 @@ class ModerationProfileDetailSerializer(ModerationProfileSerializer):
 
     class Meta(ModerationProfileSerializer.Meta):
         fields = ModerationProfileSerializer.Meta.fields + (
-            "first_name",
+            "first_name", "date_of_birth",
             "surname", "mother_tongue", "height_cm", "complexion", "food_habit",
             "physically_challenged", "gothram", "education_detail", "company",
             "annual_income_text", "native_district", "address",
