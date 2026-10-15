@@ -28,3 +28,12 @@ Thumbs.db
 backend/brahmamu_vbss.sql.gz
 /brahmamu_vbss.sql.gz
 backend/legacy_photos_map.json
+
+# end-to-end test run artefacts
+backend/e2e.sqlite3
+backend/e2e_media/
+backend/e2e_emails/
+backend/sent_emails/
+frontend/e2e/.results/
+frontend/playwright-report/
+frontend/test-results/

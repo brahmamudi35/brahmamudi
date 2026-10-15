@@ -152,7 +152,7 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "media/"
-MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_ROOT = env("MEDIA_ROOT", default=str(BASE_DIR / "media"))  # the E2E suite uses a temp dir
 
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
@@ -261,6 +261,8 @@ else:
         default="django.core.mail.backends.console.EmailBackend",
     )
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@brahmamudi.com")
+# Only used by the file-based email backend (the E2E suite reads codes from here).
+EMAIL_FILE_PATH = env("EMAIL_FILE_PATH", default=str(BASE_DIR / "sent_emails"))
 EMAIL_HOST = env("EMAIL_HOST", default="localhost")
 EMAIL_PORT = env.int("EMAIL_PORT", default=25)
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
