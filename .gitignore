@@ -26,4 +26,5 @@ Thumbs.db
 
 # legacy dump (member PII) + photo manifest — local only, never committed or uploaded
 backend/brahmamu_vbss.sql.gz
+/brahmamu_vbss.sql.gz
 backend/legacy_photos_map.json
