@@ -64,7 +64,8 @@ async function refreshAccess(): Promise<string | null> {
           body: JSON.stringify({ refresh: tokens.refresh }),
         });
         if (!res.ok) {
-          clearTokens();
+          // a rejected/expired refresh token ends the session; a server error doesn't
+          if (res.status === 400 || res.status === 401 || res.status === 403) clearTokens();
           return null;
         }
         const data = (await res.json()) as { access: string; refresh?: string };

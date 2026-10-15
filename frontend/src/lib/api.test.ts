@@ -116,4 +116,14 @@ describe("apiFetch", () => {
     await expect(apiFetch("/auth/me/")).rejects.toMatchObject({ status: 401 });
     expect(getTokens()).toBeNull();
   });
+
+  it("keeps the session when the refresh endpoint has a server error", async () => {
+    setTokens({ access: "stale", refresh: "good" });
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ detail: "expired" }, 401))
+      .mockResolvedValueOnce(jsonResponse({ detail: "boom" }, 502)); // refresh hiccup
+
+    await expect(apiFetch("/auth/me/")).rejects.toMatchObject({ status: 401 });
+    expect(getTokens()).toEqual({ access: "stale", refresh: "good" });
+  });
 });
