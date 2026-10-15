@@ -27,6 +27,9 @@ jobs:
         run: python manage.py check
       - name: Missing migrations
         run: python manage.py makemigrations --check --dry-run
+      - name: Collect static files
+        # DEBUG is off, so the admin needs the manifest that production builds at startup
+        run: python manage.py collectstatic --noinput
       - name: Tests
         run: python manage.py test --verbosity 2
 
