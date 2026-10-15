@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BadgeCheck, Ban, Check, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 
+import { ConfirmButton } from "@/components/admin/confirm-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -58,30 +59,44 @@ export function MemberRow({
             <SlidersHorizontal className="size-4" />
             Manage
           </Button>
-          <Button
-            size="sm"
-            variant={p.is_verified ? "outline" : "default"}
-            disabled={busy}
-            onClick={() => onAct(p.id, p.is_verified ? "unverify" : "verify")}
-          >
-            {p.is_verified ? <X className="size-4" /> : <Check className="size-4" />}
-            {p.is_verified ? "Unverify" : "Verify"}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={busy}
-            onClick={() =>
-              onAct(p.id, p.status === "suspended" ? "reinstate" : "suspend")
-            }
-          >
-            {p.status === "suspended" ? (
+          {p.is_verified ? (
+            <ConfirmButton
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              title="Remove the verified badge?"
+              description={`${p.full_name || p.regno} will no longer show as verified to other members.`}
+              confirmLabel="Unverify"
+              onConfirm={() => onAct(p.id, "unverify")}
+            >
+              <X className="size-4" />
+              Unverify
+            </ConfirmButton>
+          ) : (
+            <Button size="sm" disabled={busy} onClick={() => onAct(p.id, "verify")}>
+              <Check className="size-4" />
+              Verify
+            </Button>
+          )}
+          {p.status === "suspended" ? (
+            <Button size="sm" variant="outline" disabled={busy} onClick={() => onAct(p.id, "reinstate")}>
               <RotateCcw className="size-4" />
-            ) : (
+              Reinstate
+            </Button>
+          ) : (
+            <ConfirmButton
+              size="sm"
+              variant="outline"
+              disabled={busy}
+              title="Suspend this member?"
+              description={`${p.full_name || p.regno}'s profile will be hidden from search and matches until you reinstate it.`}
+              confirmLabel="Suspend"
+              onConfirm={() => onAct(p.id, "suspend")}
+            >
               <Ban className="size-4" />
-            )}
-            {p.status === "suspended" ? "Reinstate" : "Suspend"}
-          </Button>
+              Suspend
+            </ConfirmButton>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import type { ModerationProfile } from "@/lib/types";
@@ -82,6 +82,8 @@ describe("<MemberRow>", () => {
       <MemberRow p={member({ is_verified: true })} busy={false} onAct={onAct} />,
     );
     await user.click(screen.getByRole("button", { name: /unverify/i }));
+    expect(onAct).not.toHaveBeenCalledWith(42, "unverify"); // asks first
+    await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Unverify" }));
     expect(onAct).toHaveBeenCalledWith(42, "unverify");
   });
 
@@ -93,6 +95,8 @@ describe("<MemberRow>", () => {
       <MemberRow p={member()} busy={false} onAct={onAct} />,
     );
     await user.click(screen.getByRole("button", { name: /suspend/i }));
+    expect(onAct).not.toHaveBeenCalled(); // asks first
+    await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Suspend" }));
     expect(onAct).toHaveBeenCalledWith(42, "suspend");
 
     rerender(

@@ -125,6 +125,7 @@ export default function InterestsPage() {
                         <Button
                           size="sm"
                           variant="outline"
+                          aria-label="Decline"
                           onClick={() => respond(it.id, "decline")}
                         >
                           <X className="size-4" />

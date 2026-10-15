@@ -154,6 +154,7 @@ export default function SavedSearchesPage() {
                     variant="ghost"
                     className={cn("ml-auto text-muted-foreground")}
                     disabled={busy === s.id}
+                    aria-label={`Delete saved search ${s.name}`}
                     onClick={() => remove(s.id)}
                   >
                     <Trash2 className="size-4" />

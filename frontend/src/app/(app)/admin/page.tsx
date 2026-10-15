@@ -357,6 +357,7 @@ function PhotosTab({ onChange }: { onChange: () => void }) {
                 size="sm"
                 className="flex-1"
                 disabled={busy === p.id}
+                aria-label="Approve photo"
                 onClick={() => approve(p.id)}
               >
                 <Check className="size-4" />

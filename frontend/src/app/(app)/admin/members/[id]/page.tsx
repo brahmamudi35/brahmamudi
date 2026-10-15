@@ -411,6 +411,7 @@ export default function AdminMemberPage() {
                             size="sm"
                             className="h-6 flex-1 px-0"
                             disabled={!!busy}
+                            aria-label="Approve photo"
                             onClick={async () => {
                               setBusy(`photo-${ph.id}`);
                               try {
