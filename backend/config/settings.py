@@ -289,7 +289,8 @@ ADMIN_LOGIN_LOCKOUT_SECONDS = env.int("ADMIN_LOGIN_LOCKOUT_SECONDS", default=900
 
 # Security (enabled when DEBUG is off)
 if not DEBUG:
-    SECURE_SSL_REDIRECT = True
+    # CI runs with DEBUG off but talks plain HTTP to the test client; it sets this false.
+    SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=True)
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = 31536000
