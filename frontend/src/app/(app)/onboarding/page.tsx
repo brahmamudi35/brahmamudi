@@ -361,7 +361,7 @@ export default function OnboardingPage() {
                 )}
                 {step === 3 && (
                   <>
-                    <SelectField form={form} name="education" label="Highest education" options={toChoices(ref.education)} />
+                    <SelectField form={form} name="education" label="Qualification" options={toChoices(ref.education)} />
                     <TextField form={form} name="education_detail" label="Degree / details" placeholder="e.g. B.Tech (CSE), JNTU" />
                     <TextField form={form} name="occupation" label="Occupation" />
                     <TextField form={form} name="company" label="Company / employer" />

@@ -27,7 +27,7 @@ PayuReturnDetails 100 · tbl_msg 2,811 · tbl_msgtypes 6 · MembershipPlan 4 · 
 | `paadam` | `Profile.paadam` | `''` → NULL; else int 1–4 |
 | `timeofbirth`, `placeofbirth` | `Profile.time_of_birth`, `place_of_birth` | verbatim |
 | `edu_qual` | `Profile.education_detail` | strip HTML |
-| `Edu_code` | `Profile.education` (FK) | match `EducationLevel.legacy_code`; `0`/NULL → "Not specified" |
+| `Edu_code` | `Profile.education` (FK) | qualification group: 1–10 brides, 11–20 grooms (same slots +10) → `EducationLevel.legacy_code` via `data.legacy_edu_code`; `0`/`9`/NULL → blank |
 | `occupation`,`company`,`workplace`,`position` | `occupation`,`company`,`work_location`,`designation` | trim |
 | `income` | `Profile.annual_income_text` | verbatim (free text like "30 Per Annum"); `annual_income_inr` left NULL |
 | `assets` | `Profile.assets` | strip HTML |
@@ -92,4 +92,3 @@ skip rows whose profiles no longer exist). `msgcatid` → `template`.
 
 - Profile photo image files (`photo1`/`photo2` are filenames only)
 - `tbl_payu_credentials` real production Key/Salt (dump has staging `JBZaLc`/`GQs7yium`)
-- Any education-code lookup table (reconstructed best-effort in `reference/data.py`)

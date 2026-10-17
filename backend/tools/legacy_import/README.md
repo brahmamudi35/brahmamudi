@@ -20,7 +20,7 @@ python manage.py import_legacy --dry-run --limit 50
 | File | Purpose |
 |------|---------|
 | `dump_parser.py` | Streams row dicts from the gzipped `.sql` (no MySQL server). Handles multi-statement extended INSERTs and MySQL backslash escaping. |
-| `transforms.py` | Pure field cleaners: dates, `height1` feet.inches → cm, HTML stripping, sibling/contact/expectation table parsers, education derivation. |
+| `transforms.py` | Pure field cleaners: dates, `height1` feet.inches → cm, HTML stripping, sibling/contact/expectation table parsers. |
 | `../../apps/profiles/management/commands/import_legacy.py` | Orchestrates the load in one transaction. |
 
 ## Idempotency
@@ -35,9 +35,6 @@ Re-running updates rather than duplicates, matched on: `User.legacy_rid`,
   must be copied from the old upload dir, then a follow-up command creates
   `ProfilePhoto` rows.
 - **PayU production Key/Salt** — dump only carries the staging pair.
-- **Education code table** — `Edu_code` lookup was never exported; `education` is
-  derived from the `edu_qual` free text first, `Edu_code` only as fallback
-  (see `reference/data.py` for the reconstructed levels).
 - **~2,356 interest messages** reference profiles deleted years ago and are skipped.
 - Legacy `contact_no` sometimes has two numbers (mother/father) with ambiguous
   labelling; the parser makes a best effort.

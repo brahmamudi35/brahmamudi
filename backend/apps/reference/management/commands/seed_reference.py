@@ -31,6 +31,9 @@ class Command(BaseCommand):
                 legacy_code=legacy_code,
                 defaults=dict(name=name, category=category, sort_order=sort_order),
             )
+        EducationLevel.objects.exclude(
+            legacy_code__in=[row[2] for row in data.EDUCATION_LEVELS]
+        ).delete()
         self.stdout.write(f"EducationLevel: {EducationLevel.objects.count()}")
 
         for name, slug, months, price, views, per_day, sort_order in data.MEMBERSHIP_PLANS:

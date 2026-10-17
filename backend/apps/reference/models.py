@@ -42,15 +42,19 @@ class Raasi(models.Model):
 
 
 class EducationLevel(models.Model):
-    """Education categories. `legacy_code` maps tbl_profiles.Edu_code."""
+    """Qualification groups. `legacy_code` maps tbl_profiles.Edu_code
+    (via data.legacy_edu_code)."""
 
     CATEGORY_CHOICES = [
-        ("school", "School"),
-        ("diploma", "Diploma"),
-        ("bachelors", "Bachelor's"),
-        ("masters", "Master's"),
-        ("doctorate", "Doctorate"),
-        ("other", "Other"),
+        ("group1", "Group 1"),
+        ("doctor", "Doctor"),
+        ("masters", "Masters"),
+        ("bachelors", "Bachelors"),
+        ("abroad", "USA & other countries"),
+        ("ca_icwai", "CA & ICWAI"),
+        ("pg_mcom", "PG, M.Com"),
+        ("graduate", "Graduate & Non Graduate"),
+        ("remarriage", "Second marriage"),
     ]
 
     name = models.CharField(max_length=80, unique=True)

@@ -102,7 +102,7 @@ class ModerationProfileDetailSerializer(ModerationProfileSerializer):
         fields = ModerationProfileSerializer.Meta.fields + (
             "first_name", "date_of_birth",
             "surname", "mother_tongue", "height_cm", "complexion", "food_habit",
-            "physically_challenged", "gothram", "education_detail", "company",
+            "physically_challenged", "gothram", "education", "education_detail", "company",
             "annual_income_text", "native_district", "address",
             "father_name", "father_occupation", "mother_name", "mother_occupation",
             "family_background", "about", "expectations", "willing_to_relocate_abroad",
@@ -174,7 +174,7 @@ class ModerationProfileWriteSerializer(serializers.ModelSerializer):
             "user",
             "first_name", "surname", "gender", "date_of_birth", "marital_status",
             "mother_tongue", "height_cm", "complexion", "food_habit",
-            "physically_challenged", "subcaste", "gothram", "education_detail",
+            "physically_challenged", "subcaste", "gothram", "education", "education_detail",
             "occupation", "company", "work_location", "designation",
             "annual_income_text", "country_living", "native_district", "region",
             "address", "father_name", "father_occupation", "mother_name",

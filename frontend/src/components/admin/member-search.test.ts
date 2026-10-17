@@ -56,14 +56,17 @@ describe("buildMemberQuery", () => {
 });
 
 describe("EDUCATION_OPTIONS", () => {
-  it("covers the six backend education categories", () => {
+  it("covers the nine backend qualification groups", () => {
     expect(EDUCATION_OPTIONS.map((o) => o.value)).toEqual([
-      "school",
-      "diploma",
-      "bachelors",
+      "group1",
+      "doctor",
       "masters",
-      "doctorate",
-      "other",
+      "bachelors",
+      "abroad",
+      "ca_icwai",
+      "pg_mcom",
+      "graduate",
+      "remarriage",
     ]);
   });
 });

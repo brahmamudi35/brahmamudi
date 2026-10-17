@@ -67,12 +67,15 @@ export function buildMemberQuery(
 }
 
 export const EDUCATION_OPTIONS = [
-  { value: "school", label: "School" },
-  { value: "diploma", label: "Diploma" },
-  { value: "bachelors", label: "Bachelor's" },
-  { value: "masters", label: "Master's" },
-  { value: "doctorate", label: "Doctorate" },
-  { value: "other", label: "Other" },
+  { value: "group1", label: "Group 1" },
+  { value: "doctor", label: "Doctor" },
+  { value: "masters", label: "Masters" },
+  { value: "bachelors", label: "Bachelors" },
+  { value: "abroad", label: "USA & other countries" },
+  { value: "ca_icwai", label: "CA & ICWAI" },
+  { value: "pg_mcom", label: "PG, M.Com" },
+  { value: "graduate", label: "Graduate & Non Graduate" },
+  { value: "remarriage", label: "Second marriage" },
 ];
 
 /** Lightweight: how many members match, without pulling the rows. */

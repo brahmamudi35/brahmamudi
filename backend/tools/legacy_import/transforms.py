@@ -156,36 +156,6 @@ def parse_siblings(html_blob: str | None) -> list[dict]:
     return out
 
 
-def derive_education(edu_qual: str | None, name_map: dict):
-    """Pick an EducationLevel from the legacy free-text `edu_qual`.
-
-    `name_map` maps a normalised level name -> EducationLevel. Returns an object
-    or None; the caller falls back to Edu_code.
-    """
-    text = strip_html(edu_qual)
-    if not text:
-        return None
-    norm = re.sub(r"\s*/\s*", " / ", text).strip().lower()
-    norm = _WS.sub(" ", norm)
-    if norm in name_map:
-        return name_map[norm]
-    low = text.lower()
-    if any(w in low for w in ("phd", "ph.d", "doctor", "post doc")):
-        return name_map.get("__doctorate__")
-    if any(w in low for w in ("master", "m.tech", "mtech", "m.s", "msc", "mba", "m.b.a",
-                              "m.a", "m.com", "pg ", "md ", "m.d", "ms ", "mds", "pg diploma")):
-        return name_map.get("__masters__")
-    if any(w in low for w in ("bachelor", "b.tech", "btech", "b.e", "b.sc", "bsc", "b.com",
-                              "b.a", "degree", "graduat", "bds", "mbbs", "bams", "bhms",
-                              "b.pharm", "bpharm", "ca ", "c.a", "llb", "l.l.b")):
-        return name_map.get("__bachelors__")
-    if "diploma" in low:
-        return name_map.get("__diploma__")
-    if any(w in low for w in ("school", "ssc", "intermediate", "10th", "12th")):
-        return name_map.get("__school__")
-    return None
-
-
 def parse_contact(html_blob: str | None) -> dict:
     """Legacy `contact_no` holds a Landline/Mobile/Parent Mobile table."""
     result = {"mobile": "", "parent_mobile": "", "landline": ""}

@@ -51,30 +51,28 @@ RAASI = [
 ]
 
 # name, category, legacy_code, sort_order
-# legacy_code mirrors tbl_profiles.Edu_code; 0 = unspecified.
+# The old site's qualification groups. Legacy Edu_code used 1-10 for brides
+# and 11-20 for grooms (same slots, +10); see legacy_edu_code(). Slot 9 was
+# left blank on the old site, and "no qualification" is simply null.
 EDUCATION_LEVELS = [
-    ("Not specified", "other", 0, 0),
-    ("High School", "school", 1, 10),
-    ("Higher Secondary", "school", 2, 20),
-    ("Diploma", "diploma", 3, 30),
-    ("Bachelors - Arts", "bachelors", 4, 40),
-    ("Bachelors - Commerce", "bachelors", 5, 41),
-    ("Bachelors - Science", "bachelors", 6, 42),
-    ("Bachelors - Engineering / Computers", "bachelors", 7, 43),
-    ("Bachelors - Medicine", "bachelors", 8, 44),
-    ("Bachelors - Law", "bachelors", 9, 45),
-    ("Bachelors - Management", "bachelors", 10, 46),
-    ("Bachelors - Other", "bachelors", 11, 47),
-    ("Masters - Arts", "masters", 12, 50),
-    ("Masters - Science", "masters", 13, 51),
-    ("Masters - Engineering / Computers", "masters", 14, 52),
-    ("Masters - Commerce", "masters", 15, 53),
-    ("Masters - Management (MBA)", "masters", 16, 54),
-    ("Masters - Medicine", "masters", 17, 55),
-    ("Masters - Other", "masters", 18, 56),
-    ("Doctorate (PhD / MD)", "doctorate", 19, 60),
-    ("Post Doctorate", "doctorate", 20, 61),
+    ("Group 1", "group1", 1, 1),
+    ("Doctor", "doctor", 2, 2),
+    ("Masters", "masters", 3, 3),
+    ("Bachelors", "bachelors", 4, 4),
+    ("USA & other countries", "abroad", 5, 5),
+    ("CA & ICWAI", "ca_icwai", 6, 6),
+    ("PG, M.Com", "pg_mcom", 7, 7),
+    ("Graduate & Non Graduate", "graduate", 8, 8),
+    ("Second marriage", "remarriage", 10, 10),
 ]
+
+
+def legacy_edu_code(edu_code: int | None) -> int | None:
+    """Fold a raw tbl_profiles.Edu_code onto its EDUCATION_LEVELS slot."""
+    if not edu_code or edu_code < 0 or edu_code > 20:
+        return None
+    code = edu_code - 10 if edu_code > 10 else edu_code
+    return None if code == 9 else code
 
 # name, slug, duration_months, price, contact_views, interests_per_day, sort
 MEMBERSHIP_PLANS = [

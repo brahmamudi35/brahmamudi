@@ -23,6 +23,7 @@ from apps.memberships.models import MembershipPlan, Subscription
 from apps.payments.models import PaymentTransaction
 from apps.profiles.models import PartnerPreference, Profile
 from apps.reference import enums
+from apps.reference.data import legacy_edu_code
 from apps.reference.models import EducationLevel, Nakshatram, Raasi
 from tools.legacy_import import transforms as tf
 from tools.legacy_import.dump_parser import iter_rows
@@ -69,16 +70,6 @@ class Command(BaseCommand):
         self.plans = {p.legacy_id: p for p in MembershipPlan.objects.all() if p.legacy_id}
         self.plans_by_name = {p.name.lower(): p for p in MembershipPlan.objects.all()}
         self.edu = {e.legacy_code: e for e in EducationLevel.objects.all()}
-        self.edu_names = {
-            _norm(e.name): e for e in EducationLevel.objects.all()
-        }
-        for cat in ("school", "diploma", "bachelors", "masters", "doctorate"):
-            rep = (
-                EducationLevel.objects.filter(category=cat, name__icontains="Other").first()
-                or EducationLevel.objects.filter(category=cat).order_by("sort_order").first()
-            )
-            if rep:
-                self.edu_names[f"__{cat}__"] = rep
         self.templates = {
             t.legacy_msgcatid: t for t in InterestTemplate.objects.all() if t.legacy_msgcatid
         }
@@ -176,11 +167,7 @@ class Command(BaseCommand):
                     paadam=_int_or_none(row.get("paadam")) or None,
                     time_of_birth=tf.clean(row.get("timeofbirth"))[:30],
                     place_of_birth=tf.clean(row.get("placeofbirth"))[:120],
-                    education=(
-                        tf.derive_education(row.get("edu_qual"), self.edu_names)
-                        or self.edu.get(edu_code)
-                        or self.edu.get(0)
-                    ),
+                    education=self.edu.get(legacy_edu_code(edu_code)),
                     education_detail=edu_detail,
                     occupation=tf.clean(row.get("occupation"))[:150],
                     company=tf.clean(row.get("company"))[:200],
@@ -373,12 +360,6 @@ class Command(BaseCommand):
         for key, val in sorted(self.stats.items()):
             self.stdout.write(f"  {key:40s} {val}")
         self.stdout.write(self.style.SUCCESS("done" if not self.dry_run else "dry-run done"))
-
-
-def _norm(text: str) -> str:
-    import re
-
-    return re.sub(r"\s+", " ", re.sub(r"\s*/\s*", " / ", text or "")).strip().lower()
 
 
 def _int_or_none(value):

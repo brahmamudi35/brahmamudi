@@ -31,7 +31,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { handleApiError } from "@/lib/form";
-import { useReferenceData } from "@/lib/reference";
+import { toChoices, useReferenceData } from "@/lib/reference";
 import type {
   MembershipPlan,
   ModerationProfileDetail,
@@ -56,7 +56,7 @@ const FIELDS = [
   "first_name", "surname", "gender", "date_of_birth", "marital_status", "mother_tongue",
   "height_cm", "complexion", "food_habit",
   "subcaste", "gothram",
-  "education_detail", "occupation", "company", "designation", "work_location", "annual_income_text",
+  "education", "education_detail", "occupation", "company", "designation", "work_location", "annual_income_text",
   "country_living", "native_district", "region", "address",
   "father_name", "father_occupation", "mother_name", "mother_occupation", "family_background",
   "about", "expectations",
@@ -153,6 +153,7 @@ export default function AdminMemberPage() {
         food_habit: values.food_habit,
         subcaste: values.subcaste,
         gothram: values.gothram,
+        education: values.education ? Number(values.education) : null,
         education_detail: values.education_detail,
         occupation: values.occupation,
         company: values.company,
@@ -325,6 +326,14 @@ export default function AdminMemberPage() {
                       />
                     )}
                     <TextField form={form} name="gothram" label="Gothram" />
+                    {ref && (
+                      <SelectField
+                        form={form}
+                        name="education"
+                        label="Qualification"
+                        options={toChoices(ref.education)}
+                      />
+                    )}
                     <TextField form={form} name="occupation" label="Occupation" />
                     <TextField form={form} name="company" label="Company" />
                     <TextField form={form} name="designation" label="Designation" />

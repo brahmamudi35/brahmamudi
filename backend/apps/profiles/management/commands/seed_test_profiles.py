@@ -24,7 +24,7 @@ ACCOUNTS = [
         date_of_birth=dt.date(1993, 8, 8),
         height_cm=178,
         occupation="Engineer",
-        education_name="Masters - Engineering / Computers",
+        education_name="Masters",
         regno="TEST-test.groom",
     ),
     dict(
@@ -35,7 +35,7 @@ ACCOUNTS = [
         date_of_birth=dt.date(1996, 5, 5),
         height_cm=160,
         occupation="Engineer",
-        education_name="Masters - Arts",
+        education_name="PG, M.Com",
         regno="TEST-test.bride",
     ),
 ]

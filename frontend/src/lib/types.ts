@@ -327,6 +327,7 @@ export interface ModerationProfileDetail extends ModerationProfile {
   food_habit: string;
   physically_challenged: boolean;
   gothram: string;
+  education: number | null;
   company: string;
   annual_income_text: string;
   native_district: string;
