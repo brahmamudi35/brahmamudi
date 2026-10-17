@@ -53,6 +53,7 @@ const str = (v: unknown) => (v == null ? "" : String(v));
 type Values = Record<string, string>;
 
 const FIELDS = [
+  "regno",
   "first_name", "surname", "gender", "date_of_birth", "marital_status", "mother_tongue",
   "height_cm", "complexion", "food_habit",
   "subcaste", "gothram",
@@ -142,6 +143,7 @@ export default function AdminMemberPage() {
           email: values.email,
           phone: values.phone,
         },
+        regno: values.regno,
         first_name: values.first_name,
         surname: values.surname,
         gender: values.gender,
@@ -282,6 +284,12 @@ export default function AdminMemberPage() {
               <h2 className="mb-4 font-heading text-lg font-semibold">Edit member</h2>
               <form onSubmit={form.handleSubmit(save)}>
                 <FieldGroup>
+                  <TextField
+                    form={form}
+                    name="regno"
+                    label="Profile number"
+                    description="Shown to members on the profile. Must be unique."
+                  />
                   <div className="grid gap-4 sm:grid-cols-2">
                     <TextField form={form} name="email" label="Login email" type="email" />
                     <TextField form={form} name="phone" label="Account phone" />

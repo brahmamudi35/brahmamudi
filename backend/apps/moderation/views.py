@@ -101,7 +101,10 @@ class ModerationProfileViewSet(
         changed += [f"user.{f}" for f, v in user_before.items()
                     if getattr(instance.user, f) != v]
         if changed:
-            audit.record(request.user, "edit_profile", instance, fields=sorted(changed))
+            extra = {}
+            if "regno" in changed:
+                extra["regno_from"] = before["regno"]
+            audit.record(request.user, "edit_profile", instance, fields=sorted(changed), **extra)
         return response.Response(
             ModerationProfileDetailSerializer(
                 instance, context=self.get_serializer_context()

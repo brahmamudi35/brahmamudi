@@ -172,6 +172,7 @@ class ModerationProfileWriteSerializer(serializers.ModelSerializer):
         model = Profile
         fields = (
             "user",
+            "regno",
             "first_name", "surname", "gender", "date_of_birth", "marital_status",
             "mother_tongue", "height_cm", "complexion", "food_habit",
             "physically_challenged", "subcaste", "gothram", "education", "education_detail",
@@ -182,6 +183,20 @@ class ModerationProfileWriteSerializer(serializers.ModelSerializer):
             "willing_to_relocate_abroad", "contact_phone", "parent_phone",
             "contact_notes",
         )
+        # validate_regno checks uniqueness itself (case-insensitively).
+        extra_kwargs = {"regno": {"validators": []}}
+
+    def validate_regno(self, value):
+        """Staff allot the profile number; it must stay unique (ignoring case)."""
+        value = " ".join(value.split())
+        if not value:
+            raise serializers.ValidationError("Profile number can't be blank.")
+        clash = Profile.objects.filter(regno__iexact=value)
+        if self.instance is not None:
+            clash = clash.exclude(pk=self.instance.pk)
+        if clash.exists():
+            raise serializers.ValidationError("Another member already has this profile number.")
+        return value
 
     def update(self, instance, validated_data):
         user_data = validated_data.pop("user", None)

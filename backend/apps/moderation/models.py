@@ -16,7 +16,7 @@ class StaffAction(models.Model):
         "profiles.Profile", null=True, blank=True, on_delete=models.SET_NULL,
         related_name="staff_actions",
     )
-    profile_regno = models.CharField(max_length=20, blank=True)
+    profile_regno = models.CharField(max_length=64, blank=True)
     data = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 

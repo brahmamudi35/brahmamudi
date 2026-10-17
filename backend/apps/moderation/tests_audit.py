@@ -1,6 +1,7 @@
 from apps.memberships.models import Subscription
 from apps.moderation.models import StaffAction
 from apps.payments.models import PaymentTransaction
+from apps.profiles.models import Profile
 from apps.reference.enums import Gender
 from apps.testing import ApiTestCase, make_profile, make_user
 
@@ -35,6 +36,27 @@ class StaffAuditTrailTests(ApiTestCase):
     def test_noop_edit_is_not_recorded(self):
         self.client.patch(self._url(), {"first_name": self.p.first_name}, format="json")
         self.assertFalse(StaffAction.objects.filter(action="edit_profile").exists())
+
+    def test_staff_can_allot_profile_number(self):
+        old = self.p.regno
+        resp = self.client.patch(
+            self._url(), {"regno": "  5911-12-S-GLT-1135-DIV Medical grounds  "}, format="json"
+        )
+        self.assertEqual(resp.status_code, 200, resp.data)
+        self.p.refresh_from_db()
+        self.assertEqual(self.p.regno, "5911-12-S-GLT-1135-DIV Medical grounds")
+        entry = StaffAction.objects.get(action="edit_profile")
+        self.assertEqual(entry.data["fields"], ["regno"])
+        self.assertEqual(entry.data["regno_from"], old)
+        self.assertEqual(entry.profile_regno, self.p.regno)
+
+    def test_profile_number_must_be_unique_and_not_blank(self):
+        other = make_profile(gender=Gender.MALE)
+        for value in (other.regno.lower(), "   "):
+            resp = self.client.patch(self._url(), {"regno": value}, format="json")
+            self.assertEqual(resp.status_code, 400)
+            self.assertIn("regno", resp.data)
+        self.assertEqual(Profile.objects.get(pk=self.p.pk).regno, self.p.regno)
 
     def test_audit_endpoint_filters_by_profile(self):
         other = make_profile(gender=Gender.MALE)
