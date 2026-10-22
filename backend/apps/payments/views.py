@@ -7,7 +7,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
-from rest_framework import permissions, views
+from rest_framework import exceptions, permissions, views
 from rest_framework.response import Response
 
 from apps.accounts.permissions import IsEmailVerified
@@ -19,11 +19,21 @@ from .models import PaymentTransaction
 logger = logging.getLogger(__name__)
 
 
+class PayUEnabled(permissions.BasePermission):
+    """Memberships are paid offline; the PayU endpoints only exist when
+    PAYU_ENABLED is on, and answer 404 otherwise."""
+
+    def has_permission(self, request, view):
+        if not settings.PAYU_ENABLED:
+            raise exceptions.NotFound()
+        return True
+
+
 @extend_schema(request=OpenApiTypes.OBJECT, responses={201: OpenApiTypes.OBJECT})
 class PayUInitiateView(views.APIView):
     """Return the signed form fields the frontend POSTs to PayU."""
 
-    permission_classes = [permissions.IsAuthenticated, IsEmailVerified]
+    permission_classes = [PayUEnabled, permissions.IsAuthenticated, IsEmailVerified]
 
     def post(self, request):
         profile = getattr(request.user, "profile", None)
@@ -69,7 +79,7 @@ def _result_redirect(txn: PaymentTransaction | None):
 class PayUReturnView(views.APIView):
     """Browser lands here (form POST) after PayU. Process, then bounce to the UI."""
 
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [PayUEnabled]
     authentication_classes: list = []
     throttle_classes: list = []  # PayU-driven; must never be rate-limited
 
@@ -97,7 +107,7 @@ class PayUReturnView(views.APIView):
 class PayUWebhookView(views.APIView):
     """PayU server-to-server callback (form-encoded). Authoritative."""
 
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [PayUEnabled]
     authentication_classes: list = []
     throttle_classes: list = []  # PayU-driven; must never be rate-limited
 

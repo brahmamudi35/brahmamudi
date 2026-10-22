@@ -1,5 +1,7 @@
 from datetime import date
 
+from django.test import override_settings
+
 from apps.memberships.models import MembershipPlan, Subscription
 from apps.payments import services
 from apps.payments.models import PaymentTransaction, PayUCredential
@@ -85,6 +87,7 @@ class ActivateMembershipTests(ApiTestCase):
         self.assertEqual(statuses, [("gold", "active"), ("silver", "expired")])
 
 
+@override_settings(PAYU_ENABLED=True)
 class PayUReturnViewTests(ApiTestCase):
     def setUp(self):
         super().setUp()
@@ -131,3 +134,10 @@ class PayUReturnViewTests(ApiTestCase):
             txn, payload = self._signed_success()
             resp = self.client.post("/api/v1/payments/payu/return/", payload)
             self.assertEqual(resp.status_code, 302)
+
+
+class PayUDisabledTests(ApiTestCase):
+    def test_payu_endpoints_are_gone_when_disabled(self):
+        for path in ("initiate", "return", "webhook"):
+            resp = self.client.post(f"/api/v1/payments/payu/{path}/", {})
+            self.assertEqual(resp.status_code, 404, path)

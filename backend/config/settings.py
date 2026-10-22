@@ -234,6 +234,8 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "Matrimony platform API for the Vishwabrahmin community.",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    # The docs list every endpoint; only staff need them.
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAdminUser"],
     "SCHEMA_PATH_PREFIX": "/api/v1",
     "COMPONENT_SPLIT_REQUEST": True,
     "ENUM_NAME_OVERRIDES": {
@@ -263,7 +265,9 @@ PROFILE_PHOTO_MAX_BYTES = env.int("PROFILE_PHOTO_MAX_BYTES", default=900_000)
 HOROSCOPE_MAX_MB = env.int("HOROSCOPE_MAX_MB", default=15)
 
 
-# PayU payment gateway
+# PayU payment gateway. Off: memberships are paid offline (UPI) and staff
+# activate them, so the PayU endpoints answer 404 unless this is turned on.
+PAYU_ENABLED = env.bool("PAYU_ENABLED", default=False)
 PAYU_ENVIRONMENT = env("PAYU_ENVIRONMENT", default="staging")  # staging | production
 PAYU_STAGING_BASE_URL = "https://test.payu.in"
 PAYU_PRODUCTION_BASE_URL = "https://secure.payu.in"

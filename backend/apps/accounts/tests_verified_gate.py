@@ -41,6 +41,7 @@ class EmailVerifiedGateTests(ApiTestCase):
         r2 = self.client.post("/api/v1/profile-photos/", {"image": _png()}, format="multipart")
         self.assertEqual(r2.status_code, status.HTTP_403_FORBIDDEN)
 
+    @override_settings(PAYU_ENABLED=True)
     def test_unverified_cannot_start_payment(self):
         him = make_profile(gender=Gender.MALE, user=make_user(email_verified=False))
         self.client.force_authenticate(him.user)
