@@ -44,4 +44,5 @@ next-env.d.ts
 .vercel
 .env*
 /.next-e2e/
+/.next-local/
 /e2e-prod/.results/
