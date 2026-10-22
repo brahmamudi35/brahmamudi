@@ -60,9 +60,9 @@ export default function RegisterPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-heading text-2xl">
+        <CardTitle className="font-heading text-2xl"><h1>
           Create your free profile
-        </CardTitle>
+        </h1></CardTitle>
         <CardDescription>
           Registration is free. You&apos;ll add bio-data and photos next.
         </CardDescription>

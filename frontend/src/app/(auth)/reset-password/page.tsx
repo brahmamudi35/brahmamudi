@@ -70,7 +70,7 @@ function ResetForm() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="font-heading text-2xl">Invalid link</CardTitle>
+          <CardTitle className="font-heading text-2xl"><h1>Invalid link</h1></CardTitle>
           <CardDescription>
             This password reset link is incomplete. Request a new one.
           </CardDescription>
@@ -89,7 +89,7 @@ function ResetForm() {
       <Card>
         <CardHeader className="items-center text-center">
           <CheckCircle2 className="size-10 text-primary" />
-          <CardTitle className="font-heading text-2xl">Password set</CardTitle>
+          <CardTitle className="font-heading text-2xl"><h1>Password set</h1></CardTitle>
           <CardDescription>Taking you to sign in…</CardDescription>
         </CardHeader>
       </Card>
@@ -99,9 +99,9 @@ function ResetForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-heading text-2xl">
+        <CardTitle className="font-heading text-2xl"><h1>
           Choose a new password
-        </CardTitle>
+        </h1></CardTitle>
         <CardDescription>Pick something you&apos;ll remember.</CardDescription>
       </CardHeader>
       <CardContent>

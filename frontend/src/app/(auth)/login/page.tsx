@@ -55,7 +55,7 @@ function LoginForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-heading text-2xl">Welcome back</CardTitle>
+        <CardTitle className="font-heading text-2xl"><h1>Welcome back</h1></CardTitle>
         <CardDescription>Sign in to continue your search.</CardDescription>
       </CardHeader>
       <CardContent>

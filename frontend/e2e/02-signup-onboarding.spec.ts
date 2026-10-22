@@ -20,7 +20,7 @@ test.describe.serial("new member: register → verify → onboarding → photo",
     await page.getByLabel("Password").fill(PASSWORD);
     await page.getByRole("button", { name: "Create account" }).click();
     await expect(page).toHaveURL(/\/verify-email\?sent=1/);
-    await expect(page.getByText("Verify your email", { exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Verify your email" })).toBeVisible();
     await expect(page.getByText(email)).toBeVisible();
     // resend is on a cooldown right after signup
     await expect(page.getByRole("button", { name: /Resend code in \d+s/ })).toBeDisabled();

@@ -53,7 +53,7 @@ export default function ForgotPasswordPage() {
       <Card>
         <CardHeader className="items-center text-center">
           <CheckCircle2 className="size-10 text-primary" />
-          <CardTitle className="font-heading text-2xl">Password set</CardTitle>
+          <CardTitle className="font-heading text-2xl"><h1>Password set</h1></CardTitle>
           <CardDescription>Taking you to sign in…</CardDescription>
         </CardHeader>
       </Card>
@@ -93,7 +93,7 @@ function EmailStep({ onSent }: { onSent: (email: string) => void }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-heading text-2xl">Reset your password</CardTitle>
+        <CardTitle className="font-heading text-2xl"><h1>Reset your password</h1></CardTitle>
         <CardDescription>
           Enter your email and we&apos;ll send you a 6-digit code. Members migrated
           from the old site: use this to set your first password.
@@ -162,7 +162,7 @@ function CodeStep({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="font-heading text-2xl">Enter your code</CardTitle>
+        <CardTitle className="font-heading text-2xl"><h1>Enter your code</h1></CardTitle>
         <CardDescription>
           If <span className="font-medium text-foreground">{email}</span> is
           registered, we&apos;ve emailed it a 6-digit code. It expires in 10

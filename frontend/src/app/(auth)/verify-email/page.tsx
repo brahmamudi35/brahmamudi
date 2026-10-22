@@ -60,7 +60,7 @@ function Verified() {
     <Card>
       <CardHeader className="items-center text-center">
         <CheckCircle2 className="size-10 text-primary" />
-        <CardTitle className="font-heading text-2xl">Email verified</CardTitle>
+        <CardTitle className="font-heading text-2xl"><h1>Email verified</h1></CardTitle>
         <CardDescription>Your email address is confirmed. You&apos;re all set.</CardDescription>
       </CardHeader>
       <CardContent>
@@ -119,7 +119,7 @@ function VerifyByCode({
     <Card>
       <CardHeader className="items-center text-center">
         <MailCheck className="size-10 text-primary" />
-        <CardTitle className="font-heading text-2xl">Verify your email</CardTitle>
+        <CardTitle className="font-heading text-2xl"><h1>Verify your email</h1></CardTitle>
         <CardDescription>
           {signedInEmail ? (
             <>
@@ -216,9 +216,9 @@ function VerifyByLink({ token }: { token: string }) {
         ) : (
           <XCircle className="size-10 text-destructive" />
         )}
-        <CardTitle className="font-heading text-2xl">
+        <CardTitle className="font-heading text-2xl"><h1>
           {state === "verifying" ? "Verifying your email…" : "Couldn't verify"}
-        </CardTitle>
+        </h1></CardTitle>
         {state === "error" && <CardDescription>{message}</CardDescription>}
       </CardHeader>
       {state === "error" && (
