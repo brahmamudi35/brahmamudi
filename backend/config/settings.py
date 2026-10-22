@@ -159,6 +159,28 @@ STORAGES = {
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
 }
 
+# Uploads go to Cloudflare R2 (S3-compatible) when R2_BUCKET is set; otherwise
+# local disk as above. The bucket stays private: every URL handed out is
+# signed and expires, so a hidden photo or horoscope can't be fetched later
+# from a copied link.
+R2_BUCKET = env("R2_BUCKET", default="")
+MEDIA_ON_DISK = not R2_BUCKET
+if R2_BUCKET:
+    STORAGES["default"] = {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "bucket_name": R2_BUCKET,
+            "endpoint_url": f"https://{env('R2_ACCOUNT_ID')}.r2.cloudflarestorage.com",
+            "access_key": env("R2_ACCESS_KEY_ID"),
+            "secret_key": env("R2_SECRET_ACCESS_KEY"),
+            "region_name": "auto",
+            "signature_version": "s3v4",
+            "querystring_auth": True,
+            "querystring_expire": env.int("R2_URL_EXPIRE_SECONDS", default=6 * 3600),
+            "file_overwrite": False,
+        },
+    }
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 

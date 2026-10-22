@@ -58,14 +58,16 @@ urlpatterns = [
     path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
 ]
 
-# No separate file server (nginx/S3) in front of this app; serve MEDIA_URL directly
-# in every environment, same as whitenoise stands in for nginx on static files.
-# (django.conf.urls.static.static() no-ops when DEBUG=False, so build the
-# pattern directly instead.)
-urlpatterns += [
-    re_path(
-        r"^%s(?P<path>.*)$" % re.escape(settings.MEDIA_URL.lstrip("/")),
-        serve_static,
-        {"document_root": settings.MEDIA_ROOT},
-    ),
-]
+# When uploads live on local disk there's no separate file server in front of
+# this app, so serve MEDIA_URL directly in every environment, same as whitenoise
+# stands in for nginx on static files. (django.conf.urls.static.static() no-ops
+# when DEBUG=False, so build the pattern directly instead.) With R2, file URLs
+# point at the bucket and this route isn't needed.
+if settings.MEDIA_ON_DISK:
+    urlpatterns += [
+        re_path(
+            r"^%s(?P<path>.*)$" % re.escape(settings.MEDIA_URL.lstrip("/")),
+            serve_static,
+            {"document_root": settings.MEDIA_ROOT},
+        ),
+    ]
