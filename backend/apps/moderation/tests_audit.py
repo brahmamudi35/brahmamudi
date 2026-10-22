@@ -153,3 +153,63 @@ class MemberEditKeepsDateOfBirthTests(ApiTestCase):
         self.assertEqual(p.date_of_birth, date(1993, 8, 8))
         self.assertEqual(p.occupation, "Chartered Accountant")
         self.assertEqual(StaffAction.objects.get(action="edit_profile").data["fields"], ["occupation"])
+
+
+class StaffCreateMemberTests(ApiTestCase):
+    URL = "/api/v1/moderation/profiles/"
+
+    def setUp(self):
+        super().setUp()
+        self.staff = make_user(email="desk@example.com", is_staff=True)
+        self.client.force_authenticate(self.staff)
+
+    def test_staff_creates_member_with_email(self):
+        resp = self.client.post(self.URL, {
+            "user": {"email": "Ravi@Example.com", "phone": "9876543210"},
+            "first_name": "Ravi", "surname": "Kammari", "gender": "M",
+            "date_of_birth": "1995-04-02", "subcaste": "goldsmith",
+            "time_of_birth": "06:45 AM",
+        }, format="json")
+        self.assertEqual(resp.status_code, 201, resp.data)
+        p = Profile.objects.get(pk=resp.data["id"])
+        self.assertEqual(p.regno, "6220")
+        self.assertEqual(p.status, "active")
+        self.assertEqual(p.time_of_birth, "06:45 AM")
+        self.assertEqual(p.user.email, "ravi@example.com")
+        self.assertEqual(p.user.phone, "9876543210")
+        self.assertFalse(p.user.has_usable_password())
+        self.assertTrue(p.user.must_reset_password)
+        self.assertTrue(hasattr(p, "partner_preference"))
+        entry = StaffAction.objects.get(action="create_profile")
+        self.assertEqual(entry.profile_id, p.pk)
+
+    def test_number_is_automatic_and_email_optional(self):
+        for name in ("Sita", "Gita"):
+            resp = self.client.post(self.URL, {
+                "regno": "6200-12-S-oltr", "first_name": name, "gender": "F",
+            }, format="json")
+            self.assertEqual(resp.status_code, 201, resp.data)
+        regnos = list(Profile.objects.order_by("id").values_list("regno", flat=True))
+        self.assertEqual(regnos, ["6220", "6221"])  # a typed regno is ignored
+        p = Profile.objects.get(pk=resp.data["id"])
+        self.assertTrue(p.user.email.endswith("@brahmamudi.invalid"))
+
+    def test_duplicate_email_is_rejected(self):
+        other = make_profile(gender=Gender.MALE)
+        resp = self.client.post(self.URL, {
+            "first_name": "X", "gender": "F",
+            "user": {"email": other.user.email.upper()},
+        }, format="json")
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(Profile.objects.count(), 1)
+
+    def test_name_and_gender_are_required(self):
+        resp = self.client.post(self.URL, {}, format="json")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("first_name", resp.data)
+        self.assertIn("gender", resp.data)
+
+    def test_members_cannot_create_through_desk(self):
+        self.client.force_authenticate(make_user())
+        resp = self.client.post(self.URL, {"first_name": "X", "gender": "F"}, format="json")
+        self.assertEqual(resp.status_code, 403)

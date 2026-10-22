@@ -26,6 +26,7 @@ from .serializers import (
     ModerationHoroscopeSerializer,
     ModerationPaymentSerializer,
     ModerationPhotoSerializer,
+    ModerationProfileCreateSerializer,
     ModerationProfileDetailSerializer,
     ModerationProfileSerializer,
     ModerationProfileWriteSerializer,
@@ -43,6 +44,7 @@ _PHOTO_COUNTS = {
 
 
 class ModerationProfileViewSet(
+    mixins.CreateModelMixin,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
     mixins.UpdateModelMixin,
@@ -68,6 +70,8 @@ class ModerationProfileViewSet(
     }
 
     def get_serializer_class(self):
+        if self.action == "create":
+            return ModerationProfileCreateSerializer
         if self.action in ("update", "partial_update"):
             return ModerationProfileWriteSerializer
         if self.action == "retrieve":
@@ -86,6 +90,19 @@ class ModerationProfileViewSet(
             return qs
         preset = self._PRESETS.get(self.request.query_params.get("filter", "all"))
         return preset(qs) if preset else qs
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        profile = serializer.save()
+        audit.record(request.user, "create_profile", profile)
+        profile = self.get_queryset().get(pk=profile.pk)
+        return response.Response(
+            ModerationProfileDetailSerializer(
+                profile, context=self.get_serializer_context()
+            ).data,
+            status=201,
+        )
 
     def update(self, request, *args, **kwargs):
         kwargs["partial"] = True  # staff edits are always partial

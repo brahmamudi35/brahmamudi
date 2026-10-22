@@ -81,7 +81,7 @@ export default function RefundPolicyPage() {
         <p>
           Email <a href={`mailto:${SITE.email}`}>{SITE.email}</a> or call / WhatsApp{" "}
           {SITE.phone} with your registered email, profile number (e.g.
-          BM001234), payment date, amount and the UPI / bank transaction
+          6220), payment date, amount and the UPI / bank transaction
           reference (UTR). We reply
           within 2 working days.
         </p>

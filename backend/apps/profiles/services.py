@@ -6,13 +6,43 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable
 
+from typing import Callable
+
 from django.db import IntegrityError, transaction
-from django.db.models import F
+from django.db.models import BigIntegerField, F, Max
+from django.db.models.functions import Cast
 from django.utils import timezone
 
 from apps.memberships.models import Subscription
 
 from .models import ContactUnlock, Profile, ProfileView
+
+# New profiles are numbered 6220, 6221, ... continuing above the legacy
+# site's numbers (whose regnos start with the old rid, up to ~6198).
+FIRST_REGNO = 6220
+
+
+def next_regno() -> str:
+    """The next free profile number: one past the highest all-digit regno."""
+    highest = (
+        Profile.objects.filter(regno__regex=r"^[0-9]+$")
+        .annotate(n=Cast("regno", BigIntegerField()))
+        .aggregate(m=Max("n"))["m"]
+    )
+    return str(max(highest or 0, FIRST_REGNO - 1) + 1)
+
+
+def save_with_regno(save: Callable[[str], Profile], attempts: int = 5) -> Profile:
+    """Run ``save(regno)`` with the next profile number, retrying if another
+    profile claimed the same number at the same moment."""
+    for attempt in range(attempts):
+        try:
+            with transaction.atomic():
+                return save(next_regno())
+        except IntegrityError:
+            if attempt == attempts - 1:
+                raise
+    raise AssertionError("unreachable")
 
 
 class ContactUnlockError(Exception):

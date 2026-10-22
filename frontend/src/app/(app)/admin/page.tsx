@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Check, Search, Trash2 } from "lucide-react";
+import { Check, Search, Trash2, UserPlus } from "lucide-react";
 
 import { GuidedSearch, MultiChips } from "@/components/admin/guided-search";
 import { MemberRow } from "@/components/admin/member-row";
@@ -63,7 +63,13 @@ export default function AdminModerationPage() {
 
   return (
     <Container className="py-6">
-      <h1 className="font-heading text-2xl font-semibold">Admin</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="font-heading text-2xl font-semibold">Admin</h1>
+        <Button size="sm" render={<Link href="/admin/members/new" />}>
+          <UserPlus className="size-4" />
+          Add member
+        </Button>
+      </div>
 
       {summary && (
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">

@@ -141,6 +141,30 @@ test.describe.serial("staff desk", () => {
     await expect(page.getByText("Approved photo").first()).toBeVisible();
   });
 
+  test("staff add a member on one page; the profile number is automatic", async ({ page }) => {
+    await page.goto("/admin");
+    await page.getByRole("button", { name: "Add member" }).click();
+    await expect(page).toHaveURL(/\/admin\/members\/new/);
+
+    // name and gender are required
+    await page.getByRole("button", { name: "Create member" }).click();
+    await expect(page.getByText("Enter a name.")).toBeVisible();
+
+    await expect(page.getByLabel("Profile number")).toHaveCount(0);
+    await field(page, "Login email").fill("walkin@e2e.test");
+    await field(page, "Name").fill("Padma");
+    await pickSelect(page, "Gender", /Female|Bride/);
+    await pickSelect(page, "Qualification", "Masters");
+    await field(page, "Time of birth").fill("06:45 AM");
+    await field(page, "Father's name").fill("Venkatachary");
+    await page.getByRole("button", { name: "Create member" }).click();
+
+    await expect(page).toHaveURL(/\/admin\/members\/\d+$/);
+    await expect(page.getByText(/^62\d\d · Bride/)).toBeVisible(); // 6220 onwards, no "BM"
+    await expect(field(page, "Father's name")).toHaveValue("Venkatachary");
+    await expect(field(page, "Time of birth")).toHaveValue("06:45 AM");
+  });
+
   test("staff search sees both brides and grooms", async ({ page }) => {
     await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Browse members" }).click();
     await expect(page.getByText("Lakshmi").first()).toBeVisible();

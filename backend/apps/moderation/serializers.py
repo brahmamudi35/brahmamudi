@@ -1,4 +1,7 @@
+from uuid import uuid4
+
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -6,6 +9,8 @@ from rest_framework import serializers
 from apps.memberships.models import Subscription
 from apps.payments.models import PaymentTransaction
 from apps.profiles.models import HoroscopeDocument, PartnerPreference, Profile, ProfilePhoto
+from apps.profiles.services import save_with_regno
+from apps.reference.enums import ProfileStatus
 
 from .models import StaffAction
 
@@ -100,10 +105,11 @@ class ModerationProfileDetailSerializer(ModerationProfileSerializer):
 
     class Meta(ModerationProfileSerializer.Meta):
         fields = ModerationProfileSerializer.Meta.fields + (
-            "first_name", "date_of_birth",
+            "profile_for", "first_name", "date_of_birth",
             "surname", "mother_tongue", "height_cm", "complexion", "food_habit",
-            "physically_challenged", "gothram", "education", "education_detail", "company",
-            "annual_income_text", "native_district", "address",
+            "physically_challenged", "gothram", "nakshatram", "raasi", "paadam",
+            "time_of_birth", "place_of_birth", "education", "education_detail", "company",
+            "annual_income_text", "native_district", "settled_at", "address",
             "father_name", "father_occupation", "mother_name", "mother_occupation",
             "family_background", "about", "expectations", "willing_to_relocate_abroad",
             "contact_phone", "parent_phone", "contact_notes",
@@ -172,12 +178,13 @@ class ModerationProfileWriteSerializer(serializers.ModelSerializer):
         model = Profile
         fields = (
             "user",
-            "regno",
+            "regno", "profile_for",
             "first_name", "surname", "gender", "date_of_birth", "marital_status",
             "mother_tongue", "height_cm", "complexion", "food_habit",
-            "physically_challenged", "subcaste", "gothram", "education", "education_detail",
+            "physically_challenged", "subcaste", "gothram", "nakshatram", "raasi",
+            "paadam", "time_of_birth", "place_of_birth", "education", "education_detail",
             "occupation", "company", "work_location", "designation",
-            "annual_income_text", "country_living", "native_district", "region",
+            "annual_income_text", "country_living", "native_district", "settled_at", "region",
             "address", "father_name", "father_occupation", "mother_name",
             "mother_occupation", "family_background", "about", "expectations",
             "willing_to_relocate_abroad", "contact_phone", "parent_phone",
@@ -215,6 +222,56 @@ class ModerationProfileWriteSerializer(serializers.ModelSerializer):
                 setattr(instance.user, k, v)
             instance.user.save()
         return super().update(instance, validated_data)
+
+
+class _NewUserFieldsSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=False, allow_blank=True)
+    phone = serializers.CharField(required=False, allow_blank=True, max_length=20)
+
+
+class ModerationProfileCreateSerializer(ModerationProfileWriteSerializer):
+    """Staff registering a member on their behalf (e.g. a family that came in
+    person). The account gets no password: the member sets one through the
+    usual reset-by-email flow, exactly like imported legacy accounts. With no
+    email given, a placeholder address keeps the account unique. The profile
+    number is always automatic (see profiles.services.next_regno)."""
+
+    user = _NewUserFieldsSerializer(required=False)
+
+    class Meta(ModerationProfileWriteSerializer.Meta):
+        fields = tuple(
+            f for f in ModerationProfileWriteSerializer.Meta.fields if f != "regno"
+        )
+        extra_kwargs = {}
+
+    def validate(self, attrs):
+        email = (attrs.get("user") or {}).get("email", "").strip().lower()
+        if email and get_user_model().objects.filter(email__iexact=email).exists():
+            raise serializers.ValidationError(
+                {"user": {"email": "Another account already uses this email."}}
+            )
+        return attrs
+
+    @transaction.atomic
+    def create(self, validated_data):
+        user_data = validated_data.pop("user", None) or {}
+        email = user_data.get("email", "").strip().lower()
+        user = get_user_model().objects.create_user(
+            email=email or f"member-{uuid4().hex[:12]}@brahmamudi.invalid",
+            password=None,
+            phone=user_data.get("phone", ""),
+            full_name=" ".join(
+                x for x in (validated_data.get("first_name"), validated_data.get("surname")) if x
+            )[:150],
+            must_reset_password=True,
+        )
+        profile = save_with_regno(
+            lambda regno: Profile.objects.create(
+                user=user, regno=regno, status=ProfileStatus.ACTIVE, **validated_data
+            )
+        )
+        PartnerPreference.objects.get_or_create(profile=profile)
+        return profile
 
 
 class ModerationPhotoSerializer(serializers.ModelSerializer):

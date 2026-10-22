@@ -45,7 +45,7 @@ def make_profile(
     n = _uid()
     return Profile.objects.create(
         user=user,
-        regno=f"BM{n:06d}",
+        regno=extra.pop("regno", f"BM{n:06d}"),
         first_name=first_name,
         gender=gender,
         status=status,

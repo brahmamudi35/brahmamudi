@@ -16,7 +16,18 @@ class ProfileCreateTests(ApiTestCase):
         profile = Profile.objects.get(user=user)
         self.assertEqual(profile.status, ProfileStatus.ACTIVE)
         self.assertFalse(profile.is_verified)
-        self.assertEqual(profile.regno, f"BM{profile.pk:06d}")
+        self.assertEqual(profile.regno, "6220")
+
+    def test_profile_numbers_continue_from_the_highest(self):
+        # legacy-style and test regnos are ignored; only all-digit ones count
+        make_profile(gender=Gender.MALE, regno="5911-12-S-GLT")
+        make_profile(gender=Gender.MALE, regno="6305")
+        user = make_user()
+        self.client.force_authenticate(user)
+        self.client.post("/api/v1/profiles/me/", {
+            "first_name": "Meera", "gender": Gender.FEMALE,
+        }, format="json")
+        self.assertEqual(Profile.objects.get(user=user).regno, "6306")
 
     def test_me_post_twice_conflicts(self):
         profile = make_profile(gender=Gender.FEMALE)

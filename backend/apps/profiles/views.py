@@ -1,5 +1,3 @@
-from uuid import uuid4
-
 from django.db.models import Prefetch
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
@@ -102,14 +100,14 @@ class ProfileViewSet(viewsets.ModelViewSet):
             )
             serializer.is_valid(raise_exception=True)
             # New profiles go live immediately; staff verify / moderate after.
-            profile = serializer.save(
-                user=request.user,
-                regno=f"BM-{uuid4().hex[:12]}",
-                status=ProfileStatus.ACTIVE,
-                is_verified=False,
+            profile = services.save_with_regno(
+                lambda regno: serializer.save(
+                    user=request.user,
+                    regno=regno,
+                    status=ProfileStatus.ACTIVE,
+                    is_verified=False,
+                )
             )
-            profile.regno = f"BM{profile.pk:06d}"
-            profile.save(update_fields=["regno"])
             return response.Response(
                 ProfileDetailSerializer(profile, context={"request": request}).data,
                 status=status.HTTP_201_CREATED,

@@ -64,7 +64,7 @@ export default function ContactPage() {
       </Card>
 
       <p className="mt-8 text-sm text-muted-foreground">
-        For payment issues, please include your profile number (e.g. BM001234)
+        For payment issues, please include your profile number (e.g. 6220)
         and the UPI / bank transaction reference (UTR) from your payment so we can help faster.
         Complaints and grievances are handled as described in our{" "}
         <a href="/privacy#grievance" className="text-primary hover:underline">
