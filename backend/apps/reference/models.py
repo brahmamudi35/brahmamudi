@@ -55,6 +55,7 @@ class EducationLevel(models.Model):
         ("pg_mcom", "PG, M.Com"),
         ("graduate", "Graduate & Non Graduate"),
         ("remarriage", "Second marriage"),
+        ("other", "Others"),
     ]
 
     name = models.CharField(max_length=80, unique=True)

@@ -64,6 +64,8 @@ EDUCATION_LEVELS = [
     ("PG, M.Com", "pg_mcom", 7, 7),
     ("Graduate & Non Graduate", "graduate", 8, 8),
     ("Second marriage", "remarriage", 10, 10),
+    # Not an old-site group; 11 is a slot legacy_edu_code never produces.
+    ("Others", "other", 11, 11),
 ]
 
 

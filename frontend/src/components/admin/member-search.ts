@@ -76,6 +76,7 @@ export const EDUCATION_OPTIONS = [
   { value: "pg_mcom", label: "PG, M.Com" },
   { value: "graduate", label: "Graduate & Non Graduate" },
   { value: "remarriage", label: "Second marriage" },
+  { value: "other", label: "Others" },
 ];
 
 /** Lightweight: how many members match, without pulling the rows. */

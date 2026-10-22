@@ -67,6 +67,7 @@ describe("EDUCATION_OPTIONS", () => {
       "pg_mcom",
       "graduate",
       "remarriage",
+      "other",
     ]);
   });
 });
