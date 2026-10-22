@@ -153,7 +153,7 @@ test.describe.serial("staff desk", () => {
     await expect(page.getByText("Given automatically on create")).toBeVisible();
     await field(page, "Brahmamudi number").fill("VBSS-1001");
     await field(page, "Login email").fill("walkin@e2e.test");
-    await field(page, "Name").fill("Padma");
+    await field(page, "Name").fill("Saraswathi");
     await pickSelect(page, "Gender", /Female|Bride/);
     await pickSelect(page, "Qualification", "Masters");
     await field(page, "Time of birth").fill("06:45 AM");
