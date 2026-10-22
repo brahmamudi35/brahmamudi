@@ -13,6 +13,8 @@ class Profile(models.Model):
     )
     legacy_rid = models.IntegerField(null=True, blank=True, unique=True, db_index=True)
     regno = models.CharField(max_length=64, unique=True, db_index=True)
+    # Optional number staff allot by hand (the regno itself is automatic).
+    brahmamudi_no = models.CharField("Brahmamudi number", max_length=64, blank=True)
     profile_for = models.CharField(
         max_length=12, choices=enums.ProfileFor.choices, default=enums.ProfileFor.SELF
     )
@@ -117,6 +119,13 @@ class Profile(models.Model):
             models.Index(fields=["gender", "status"]),
             models.Index(fields=["subcaste"]),
             models.Index(fields=["date_of_birth"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["brahmamudi_no"],
+                condition=~models.Q(brahmamudi_no=""),
+                name="profile_brahmamudi_no_unique",
+            ),
         ]
 
     def __str__(self):

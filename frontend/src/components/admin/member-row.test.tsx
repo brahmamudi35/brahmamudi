@@ -25,6 +25,7 @@ function member(overrides: Partial<ModerationProfile> = {}): ModerationProfile {
   return {
     id: 42,
     regno: "BM000042",
+    brahmamudi_no: "",
     full_name: "Meena Rao",
     email: "meena@example.com",
     phone: "9000000000",

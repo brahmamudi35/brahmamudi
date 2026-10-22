@@ -145,7 +145,9 @@ export default function AdminMemberPage() {
             {p.plan !== "Free" && <Badge variant="secondary">{p.plan}</Badge>}
           </div>
           <p className="text-sm text-muted-foreground">
-            {p.regno} · {p.gender === "F" ? "Bride" : "Groom"}
+            {p.regno}
+            {p.brahmamudi_no ? ` · Brahmamudi no. ${p.brahmamudi_no}` : ""} ·{" "}
+            {p.gender === "F" ? "Bride" : "Groom"}
             {p.age ? `, ${p.age}y` : ""} · joined{" "}
             {new Date(p.date_joined).toLocaleDateString()}
             {p.last_login

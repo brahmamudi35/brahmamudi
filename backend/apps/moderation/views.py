@@ -54,7 +54,7 @@ class ModerationProfileViewSet(
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = ModerationProfileFilter
     search_fields = [
-        "id", "regno", "first_name", "surname", "user__email", "user__phone",
+        "id", "regno", "brahmamudi_no", "first_name", "surname", "user__email", "user__phone",
         "contact_phone", "parent_phone", "occupation", "company", "gothram",
     ]
     ordering_fields = ["created_at", "date_of_birth", "regno", "first_name"]
@@ -118,10 +118,7 @@ class ModerationProfileViewSet(
         changed += [f"user.{f}" for f, v in user_before.items()
                     if getattr(instance.user, f) != v]
         if changed:
-            extra = {}
-            if "regno" in changed:
-                extra["regno_from"] = before["regno"]
-            audit.record(request.user, "edit_profile", instance, fields=sorted(changed), **extra)
+            audit.record(request.user, "edit_profile", instance, fields=sorted(changed))
         return response.Response(
             ModerationProfileDetailSerializer(
                 instance, context=self.get_serializer_context()

@@ -37,26 +37,35 @@ class StaffAuditTrailTests(ApiTestCase):
         self.client.patch(self._url(), {"first_name": self.p.first_name}, format="json")
         self.assertFalse(StaffAction.objects.filter(action="edit_profile").exists())
 
-    def test_staff_can_allot_profile_number(self):
+    def test_staff_can_allot_brahmamudi_number_but_not_profile_number(self):
         old = self.p.regno
         resp = self.client.patch(
-            self._url(), {"regno": "  5911-12-S-GLT-1135-DIV Medical grounds  "}, format="json"
+            self._url(), {"brahmamudi_no": "  5911-12-S-GLT  ", "regno": "9999"}, format="json"
         )
         self.assertEqual(resp.status_code, 200, resp.data)
+        self.assertEqual(resp.data["brahmamudi_no"], "5911-12-S-GLT")
         self.p.refresh_from_db()
-        self.assertEqual(self.p.regno, "5911-12-S-GLT-1135-DIV Medical grounds")
+        self.assertEqual(self.p.brahmamudi_no, "5911-12-S-GLT")
+        self.assertEqual(self.p.regno, old)  # automatic, not editable
         entry = StaffAction.objects.get(action="edit_profile")
-        self.assertEqual(entry.data["fields"], ["regno"])
-        self.assertEqual(entry.data["regno_from"], old)
-        self.assertEqual(entry.profile_regno, self.p.regno)
+        self.assertEqual(entry.data["fields"], ["brahmamudi_no"])
 
-    def test_profile_number_must_be_unique_and_not_blank(self):
-        other = make_profile(gender=Gender.MALE)
-        for value in (other.regno.lower(), "   "):
-            resp = self.client.patch(self._url(), {"regno": value}, format="json")
-            self.assertEqual(resp.status_code, 400)
-            self.assertIn("regno", resp.data)
-        self.assertEqual(Profile.objects.get(pk=self.p.pk).regno, self.p.regno)
+    def test_brahmamudi_number_is_optional_and_unique(self):
+        make_profile(gender=Gender.MALE, brahmamudi_no="B-101")
+        # blank is fine, and many members can leave it blank
+        resp = self.client.patch(self._url(), {"brahmamudi_no": "   "}, format="json")
+        self.assertEqual(resp.status_code, 200, resp.data)
+        resp = self.client.patch(self._url(), {"brahmamudi_no": "b-101"}, format="json")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("brahmamudi_no", resp.data)
+        self.assertEqual(Profile.objects.get(pk=self.p.pk).brahmamudi_no, "")
+
+    def test_staff_search_finds_brahmamudi_number(self):
+        self.p.brahmamudi_no = "VBSS-0042"
+        self.p.save(update_fields=["brahmamudi_no"])
+        resp = self.client.get("/api/v1/moderation/profiles/?filter=all&search=VBSS-0042")
+        rows = resp.data["results"] if isinstance(resp.data, dict) else resp.data
+        self.assertEqual([r["id"] for r in rows], [self.p.pk])
 
     def test_audit_endpoint_filters_by_profile(self):
         other = make_profile(gender=Gender.MALE)
@@ -168,10 +177,11 @@ class StaffCreateMemberTests(ApiTestCase):
             "user": {"email": "Ravi@Example.com", "phone": "9876543210"},
             "first_name": "Ravi", "surname": "Kammari", "gender": "M",
             "date_of_birth": "1995-04-02", "subcaste": "goldsmith",
-            "time_of_birth": "06:45 AM",
+            "time_of_birth": "06:45 AM", "brahmamudi_no": "VBSS-77",
         }, format="json")
         self.assertEqual(resp.status_code, 201, resp.data)
         p = Profile.objects.get(pk=resp.data["id"])
+        self.assertEqual(p.brahmamudi_no, "VBSS-77")
         self.assertEqual(p.regno, "6220")
         self.assertEqual(p.status, "active")
         self.assertEqual(p.time_of_birth, "06:45 AM")

@@ -53,7 +53,7 @@ export default function AdminNewMemberPage() {
     try {
       const created = await apiFetch<ModerationProfileDetail>("/moderation/profiles/", {
         method: "POST",
-        body: { ...toMemberBody(values), regno: undefined }, // always automatic
+        body: toMemberBody(values),
       });
       toast.success(`Member ${created.regno} created.`);
       router.push(`/admin/members/${created.id}`);

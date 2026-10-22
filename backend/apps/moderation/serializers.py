@@ -35,7 +35,7 @@ class ModerationProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = (
-            "id", "regno", "full_name", "email", "phone", "gender", "age",
+            "id", "regno", "brahmamudi_no", "full_name", "email", "phone", "gender", "age",
             "subcaste", "region", "marital_status", "occupation", "designation",
             "work_location", "education_detail", "country_living", "status",
             "is_verified", "plan", "photo_count", "pending_photo_count",
@@ -178,7 +178,7 @@ class ModerationProfileWriteSerializer(serializers.ModelSerializer):
         model = Profile
         fields = (
             "user",
-            "regno", "profile_for",
+            "brahmamudi_no", "profile_for",
             "first_name", "surname", "gender", "date_of_birth", "marital_status",
             "mother_tongue", "height_cm", "complexion", "food_habit",
             "physically_challenged", "subcaste", "gothram", "nakshatram", "raasi",
@@ -190,19 +190,22 @@ class ModerationProfileWriteSerializer(serializers.ModelSerializer):
             "willing_to_relocate_abroad", "contact_phone", "parent_phone",
             "contact_notes",
         )
-        # validate_regno checks uniqueness itself (case-insensitively).
-        extra_kwargs = {"regno": {"validators": []}}
+        # The profile number (regno) is automatic and read-only here.
+        # validate_brahmamudi_no checks uniqueness itself (case-insensitively).
+        validators = []
 
-    def validate_regno(self, value):
-        """Staff allot the profile number; it must stay unique (ignoring case)."""
+    def validate_brahmamudi_no(self, value):
+        """Optional number staff allot by hand; unique (ignoring case) when set."""
         value = " ".join(value.split())
         if not value:
-            raise serializers.ValidationError("Profile number can't be blank.")
-        clash = Profile.objects.filter(regno__iexact=value)
+            return ""
+        clash = Profile.objects.filter(brahmamudi_no__iexact=value)
         if self.instance is not None:
             clash = clash.exclude(pk=self.instance.pk)
         if clash.exists():
-            raise serializers.ValidationError("Another member already has this profile number.")
+            raise serializers.ValidationError(
+                "Another member already has this Brahmamudi number."
+            )
         return value
 
     def update(self, instance, validated_data):
@@ -237,12 +240,6 @@ class ModerationProfileCreateSerializer(ModerationProfileWriteSerializer):
     number is always automatic (see profiles.services.next_regno)."""
 
     user = _NewUserFieldsSerializer(required=False)
-
-    class Meta(ModerationProfileWriteSerializer.Meta):
-        fields = tuple(
-            f for f in ModerationProfileWriteSerializer.Meta.fields if f != "regno"
-        )
-        extra_kwargs = {}
 
     def validate(self, attrs):
         email = (attrs.get("user") or {}).get("email", "").strip().lower()

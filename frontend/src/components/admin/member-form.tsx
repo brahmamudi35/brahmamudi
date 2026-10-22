@@ -23,7 +23,7 @@ const heightOptions = Array.from({ length: 29 }, (_, i) => {
 });
 
 const TEXT_FIELDS = [
-  "regno", "profile_for", "first_name", "surname", "gender", "date_of_birth",
+  "brahmamudi_no", "profile_for", "first_name", "surname", "gender", "date_of_birth",
   "marital_status", "mother_tongue", "complexion", "food_habit",
   "subcaste", "gothram", "time_of_birth", "place_of_birth",
   "education_detail", "occupation", "company", "designation", "work_location",
@@ -39,7 +39,11 @@ const num = (v?: string) => (v ? Number(v) : null);
 
 /** Form values from a member record (or blanks for a new member). */
 export function toMemberValues(data?: Record<string, unknown>): MemberValues {
-  const v: MemberValues = { email: str(data?.email), phone: str(data?.phone) };
+  const v: MemberValues = {
+    email: str(data?.email),
+    phone: str(data?.phone),
+    regno: str(data?.regno), // display only: the profile number is automatic
+  };
   for (const f of [...TEXT_FIELDS, ...NUMBER_FIELDS]) v[f] = str(data?.[f]);
   if (!data) {
     v.profile_for = "self";
@@ -72,18 +76,24 @@ export function MemberFormSections({
   return (
     <div className="space-y-8">
       <Section title="Account">
-        {isNew ? (
-          <p className="text-sm text-muted-foreground">
-            The profile number is given automatically when you create the member.
-          </p>
-        ) : (
+        <Grid>
+          <div className="space-y-1.5">
+            <p className="text-sm font-medium">Profile number</p>
+            <p className="flex h-9 items-center text-sm">
+              {isNew ? (
+                <span className="text-muted-foreground">Given automatically on create</span>
+              ) : (
+                <span className="font-medium">{form.getValues("regno")}</span>
+              )}
+            </p>
+          </div>
           <TextField
             form={form}
-            name="regno"
-            label="Profile number"
-            description="Shown to members on the profile. Must be unique."
+            name="brahmamudi_no"
+            label="Brahmamudi number"
+            description="Optional. Fill in if the member has one. Must be unique."
           />
-        )}
+        </Grid>
         <Grid>
           <TextField
             form={form}

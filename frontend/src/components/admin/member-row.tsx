@@ -34,7 +34,8 @@ export function MemberRow({
             {p.plan !== "Free" && <Badge variant="secondary">{p.plan}</Badge>}
           </div>
           <p className="truncate text-xs text-muted-foreground">
-            {p.regno} · {p.email}
+            {p.regno}
+            {p.brahmamudi_no ? ` · Brahmamudi no. ${p.brahmamudi_no}` : ""} · {p.email}
             {p.phone ? ` · ${p.phone}` : ""} ·{" "}
             {p.gender === "F" ? "Bride" : "Groom"}
             {p.age ? `, ${p.age}y` : ""} · {p.subcaste || "—"}

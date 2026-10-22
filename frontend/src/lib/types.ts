@@ -374,6 +374,7 @@ export interface ModerationProfileDetail extends ModerationProfile {
 export interface ModerationProfile {
   id: number;
   regno: string;
+  brahmamudi_no: string;
   full_name: string;
   email: string;
   phone: string;

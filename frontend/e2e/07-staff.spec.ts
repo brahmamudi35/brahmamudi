@@ -150,7 +150,8 @@ test.describe.serial("staff desk", () => {
     await page.getByRole("button", { name: "Create member" }).click();
     await expect(page.getByText("Enter a name.")).toBeVisible();
 
-    await expect(page.getByLabel("Profile number")).toHaveCount(0);
+    await expect(page.getByText("Given automatically on create")).toBeVisible();
+    await field(page, "Brahmamudi number").fill("VBSS-1001");
     await field(page, "Login email").fill("walkin@e2e.test");
     await field(page, "Name").fill("Padma");
     await pickSelect(page, "Gender", /Female|Bride/);
@@ -160,7 +161,7 @@ test.describe.serial("staff desk", () => {
     await page.getByRole("button", { name: "Create member" }).click();
 
     await expect(page).toHaveURL(/\/admin\/members\/\d+$/);
-    await expect(page.getByText(/^62\d\d · Bride/)).toBeVisible(); // 6220 onwards, no "BM"
+    await expect(page.getByText(/^62\d\d · Brahmamudi no\. VBSS-1001 · Bride/)).toBeVisible(); // 6220 onwards, no "BM"
     await expect(field(page, "Father's name")).toHaveValue("Venkatachary");
     await expect(field(page, "Time of birth")).toHaveValue("06:45 AM");
   });
