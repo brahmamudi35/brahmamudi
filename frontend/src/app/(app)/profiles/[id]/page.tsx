@@ -118,7 +118,6 @@ export default function ProfileDetailPage() {
     ["Age", profile.age ? `${profile.age} years` : "—"],
     ["Height", heightLabel(profile.height_cm)],
     ["Marital status", cap(profile.marital_status)],
-    ["Mother tongue", profile.mother_tongue || "—"],
     ["Complexion", cap(profile.complexion)],
     ["Food habits", cap(profile.food_habit)],
   ];

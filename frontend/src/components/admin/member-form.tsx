@@ -24,7 +24,7 @@ const heightOptions = Array.from({ length: 29 }, (_, i) => {
 
 const TEXT_FIELDS = [
   "brahmamudi_no", "profile_for", "first_name", "surname", "gender", "date_of_birth",
-  "marital_status", "mother_tongue", "complexion", "food_habit",
+  "marital_status", "complexion", "food_habit",
   "subcaste", "gothram", "time_of_birth", "place_of_birth",
   "education_detail", "occupation", "company", "designation", "work_location",
   "annual_income_text", "country_living", "native_district", "settled_at", "region",
@@ -45,10 +45,7 @@ export function toMemberValues(data?: Record<string, unknown>): MemberValues {
     regno: str(data?.regno), // display only: the profile number is automatic
   };
   for (const f of [...TEXT_FIELDS, ...NUMBER_FIELDS]) v[f] = str(data?.[f]);
-  if (!data) {
-    v.profile_for = "self";
-    v.mother_tongue = "Telugu";
-  }
+  if (!data) v.profile_for = "self";
   return v;
 }
 
@@ -116,7 +113,6 @@ export function MemberFormSections({
           <SelectField form={form} name="gender" label="Gender" options={e.gender} required />
           <TextField form={form} name="date_of_birth" label="Date of birth" type="date" />
           <SelectField form={form} name="marital_status" label="Marital status" options={e.marital_status} />
-          <TextField form={form} name="mother_tongue" label="Mother tongue" />
           <SelectField form={form} name="height_cm" label="Height" options={heightOptions} />
           <SelectField form={form} name="complexion" label="Complexion" options={e.complexion} />
           <SelectField form={form} name="food_habit" label="Food habits" options={e.food_habit} />
