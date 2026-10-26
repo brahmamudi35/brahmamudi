@@ -43,6 +43,7 @@ export function toMemberValues(data?: Record<string, unknown>): MemberValues {
     email: str(data?.email),
     phone: str(data?.phone),
     regno: str(data?.regno), // display only: the profile number is automatic
+    password: "", // write-only: never loaded back
   };
   for (const f of [...TEXT_FIELDS, ...NUMBER_FIELDS]) v[f] = str(data?.[f]);
   if (!data) v.profile_for = "self";
@@ -51,8 +52,10 @@ export function toMemberValues(data?: Record<string, unknown>): MemberValues {
 
 /** Request body for POST/PATCH /moderation/profiles/. */
 export function toMemberBody(values: MemberValues) {
+  const user: Record<string, string> = { email: values.email, phone: values.phone };
+  if (values.password) user.password = values.password;
   const body: Record<string, unknown> = {
-    user: { email: values.email, phone: values.phone },
+    user,
     date_of_birth: values.date_of_birth || null,
   };
   for (const f of TEXT_FIELDS) if (f !== "date_of_birth") body[f] = values[f] ?? "";
@@ -102,6 +105,18 @@ export function MemberFormSections({
             }
           />
           <TextField form={form} name="phone" label="Account phone" />
+          <TextField
+            form={form}
+            name="password"
+            label={isNew ? "Password" : "Set new password"}
+            type="password"
+            autoComplete="new-password"
+            description={
+              isNew
+                ? "Optional. Give the member this password with their login email. Leave blank and they set one with “Forgot password”."
+                : "Leave blank to keep the current password. Needs a login email."
+            }
+          />
         </Grid>
       </Section>
 

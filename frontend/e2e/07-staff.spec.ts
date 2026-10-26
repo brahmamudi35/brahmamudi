@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 
-import { emailsTo, field, login, pickSelect } from "./helpers";
+import { emailsTo, field, login, logout, pickSelect } from "./helpers";
 
 async function openMember(page: Page, query: string) {
   await page.goto("/admin");
@@ -141,7 +141,7 @@ test.describe.serial("staff desk", () => {
     await expect(page.getByText("Approved photo").first()).toBeVisible();
   });
 
-  test("staff add a member on one page; the profile number is automatic", async ({ page }) => {
+  test("staff add a member on one page; the profile number is automatic; the member logs in with the password staff gave", async ({ page }) => {
     await page.goto("/admin");
     await page.getByRole("button", { name: "Add member" }).click();
     await expect(page).toHaveURL(/\/admin\/members\/new/);
@@ -153,6 +153,7 @@ test.describe.serial("staff desk", () => {
     await expect(page.getByText("Given automatically on create")).toBeVisible();
     await field(page, "Brahmamudi number").fill("VBSS-1001");
     await field(page, "Login email").fill("walkin@e2e.test");
+    await field(page, "Password").fill("Kalyanam#2026");
     await field(page, "Name").fill("Saraswathi");
     await pickSelect(page, "Gender", /Female|Bride/);
     await pickSelect(page, "Qualification", "Masters");
@@ -164,6 +165,12 @@ test.describe.serial("staff desk", () => {
     await expect(page.getByText(/^62\d\d · Brahmamudi no\. VBSS-1001 · Bride/)).toBeVisible(); // 6220 onwards, no "BM"
     await expect(field(page, "Father's name")).toHaveValue("Venkatachary");
     await expect(field(page, "Time of birth")).toHaveValue("06:45 AM");
+    await expect(field(page, "Set new password")).toHaveValue(""); // never loaded back
+
+    // the member signs straight in with what staff gave them, no email code
+    await logout(page);
+    await login(page, "walkin@e2e.test", "Kalyanam#2026");
+    await expect(page).not.toHaveURL(/\/(login|verify-email)/);
   });
 
   test("staff search sees both brides and grooms", async ({ page }) => {

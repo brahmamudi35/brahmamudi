@@ -91,6 +91,17 @@ describe("apiFetch", () => {
     });
   });
 
+  it("lifts a nested serializer's errors to their own keys", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ user: { password: ["Add a login email."] } }, 400),
+    );
+    const err = (await apiFetch("/moderation/profiles/", { method: "POST" }).catch(
+      (e) => e,
+    )) as ApiError;
+    expect(err.detail).toBe("Add a login email.");
+    expect(err.fields).toEqual({ password: ["Add a login email."] });
+  });
+
   it("refreshes once on 401 then retries the original request", async () => {
     setTokens({ access: "stale", refresh: "refresh-tok" });
     fetchMock

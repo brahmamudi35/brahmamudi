@@ -74,8 +74,9 @@ export default function AdminNewMemberPage() {
       <h1 className="font-heading text-2xl font-semibold">Add member</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         Register a member on their behalf. Only name and gender are required — fill in
-        what you have and add the rest later. The member sets their own password with
-        &ldquo;Forgot password&rdquo; using the login email.
+        what you have and add the rest later. Give the member a password here, or leave
+        it blank and they set their own with &ldquo;Forgot password&rdquo; using the login
+        email.
       </p>
 
       <Card className="mt-6">

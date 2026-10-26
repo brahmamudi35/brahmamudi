@@ -230,3 +230,65 @@ class StaffCreateMemberTests(ApiTestCase):
         self.client.force_authenticate(make_user())
         resp = self.client.post(self.URL, {"first_name": "X", "gender": "F"}, format="json")
         self.assertEqual(resp.status_code, 403)
+
+
+class StaffSetsPasswordTests(ApiTestCase):
+    URL = "/api/v1/moderation/profiles/"
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_authenticate(make_user(is_staff=True))
+
+    def test_member_created_with_password_can_log_in(self):
+        resp = self.client.post(self.URL, {
+            "user": {"email": "Walkin@Example.com", "password": "Kalyanam#2026"},
+            "first_name": "Sita", "gender": "F",
+        }, format="json")
+        self.assertEqual(resp.status_code, 201, resp.data)
+        user = Profile.objects.get(pk=resp.data["id"]).user
+        self.assertTrue(user.check_password("Kalyanam#2026"))
+        self.assertFalse(user.must_reset_password)
+        self.assertTrue(user.email_verified)
+        self.assertNotIn("password", str(resp.data))
+        self.client.force_authenticate(None)
+        login = self.client.post("/api/v1/auth/login/", {
+            "email": "walkin@example.com", "password": "Kalyanam#2026",
+        }, format="json")
+        self.assertEqual(login.status_code, 200, login.data)
+
+    def test_password_needs_an_email_and_must_be_strong(self):
+        no_email = self.client.post(self.URL, {
+            "user": {"password": "Kalyanam#2026"}, "first_name": "Sita", "gender": "F",
+        }, format="json")
+        self.assertEqual(no_email.status_code, 400)
+        self.assertIn("login email", str(no_email.data))
+        weak = self.client.post(self.URL, {
+            "user": {"email": "a@example.com", "password": "12345678"},
+            "first_name": "Sita", "gender": "F",
+        }, format="json")
+        self.assertEqual(weak.status_code, 400)
+        self.assertEqual(Profile.objects.count(), 0)
+
+    def test_staff_reset_password_on_edit_is_logged_without_the_value(self):
+        p = make_profile(user=make_user(email="gita@example.com"))
+        p.user.must_reset_password = True
+        p.user.save()
+        resp = self.client.patch(f"{self.URL}{p.pk}/", {
+            "user": {"password": "Muhurtham@99"},
+        }, format="json")
+        self.assertEqual(resp.status_code, 200, resp.data)
+        p.user.refresh_from_db()
+        self.assertTrue(p.user.check_password("Muhurtham@99"))
+        self.assertFalse(p.user.must_reset_password)
+        entry = StaffAction.objects.get(action="edit_profile")
+        self.assertEqual(entry.data["fields"], ["user.password"])
+        self.assertNotIn("Muhurtham", str(entry.data))
+
+    def test_reset_refused_for_member_without_email(self):
+        resp = self.client.post(self.URL, {"first_name": "Rama", "gender": "M"}, format="json")
+        pk = resp.data["id"]
+        resp = self.client.patch(f"{self.URL}{pk}/", {
+            "user": {"password": "Muhurtham@99"},
+        }, format="json")
+        self.assertEqual(resp.status_code, 400)
+        self.assertFalse(Profile.objects.get(pk=pk).user.has_usable_password())

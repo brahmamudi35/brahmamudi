@@ -1,6 +1,8 @@
 from uuid import uuid4
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
@@ -161,10 +163,14 @@ class _UserFieldsSerializer(serializers.ModelSerializer):
     # reject saving back its current, unchanged email. Uniqueness for a
     # genuinely new email is checked explicitly in update() below.
     email = serializers.EmailField(required=False)
+    # Staff can set (or reset) the member's password; never read back.
+    password = serializers.CharField(
+        write_only=True, required=False, allow_blank=True, trim_whitespace=False
+    )
 
     class Meta:
         model = get_user_model()
-        fields = ("email", "phone", "full_name", "email_verified")
+        fields = ("email", "phone", "full_name", "email_verified", "password")
         extra_kwargs = {f: {"required": False} for f in fields}
 
 
@@ -210,6 +216,10 @@ class ModerationProfileWriteSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         user_data = validated_data.pop("user", None)
+        password = (user_data or {}).pop("password", "")
+        if password:
+            email = (user_data.get("email") or instance.user.email).lower()
+            _check_staff_password(password, email, instance.user)
         if user_data:
             new_email = user_data.get("email")
             if new_email and new_email.lower() != instance.user.email:
@@ -223,6 +233,11 @@ class ModerationProfileWriteSerializer(serializers.ModelSerializer):
                 user_data["email"] = new_email
             for k, v in user_data.items():
                 setattr(instance.user, k, v)
+        if password:
+            instance.user.set_password(password)
+            instance.user.must_reset_password = False
+            instance.user.email_verified = True
+        if user_data or password:
             instance.user.save()
         return super().update(instance, validated_data)
 
@@ -230,37 +245,61 @@ class ModerationProfileWriteSerializer(serializers.ModelSerializer):
 class _NewUserFieldsSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False, allow_blank=True)
     phone = serializers.CharField(required=False, allow_blank=True, max_length=20)
+    password = serializers.CharField(
+        write_only=True, required=False, allow_blank=True, trim_whitespace=False
+    )
+
+
+def _check_staff_password(password, email, user=None):
+    """A password staff give a member needs a real login email to go with it
+    and has to pass the usual strength rules."""
+    if not email or email.endswith("@brahmamudi.invalid"):
+        raise serializers.ValidationError(
+            {"user": {"password": "Add a login email so the member can sign in with this password."}}
+        )
+    try:
+        validate_password(password, user)
+    except DjangoValidationError as exc:
+        raise serializers.ValidationError({"user": {"password": list(exc.messages)}})
 
 
 class ModerationProfileCreateSerializer(ModerationProfileWriteSerializer):
     """Staff registering a member on their behalf (e.g. a family that came in
-    person). The account gets no password: the member sets one through the
-    usual reset-by-email flow, exactly like imported legacy accounts. With no
-    email given, a placeholder address keeps the account unique. The profile
-    number is always automatic (see profiles.services.next_regno)."""
+    person). Staff may give the member a password, which needs a login email;
+    otherwise the account has none and the member sets one through the usual
+    reset-by-email flow, exactly like imported legacy accounts. With no email
+    given, a placeholder address keeps the account unique. The profile number
+    is always automatic (see profiles.services.next_regno)."""
 
     user = _NewUserFieldsSerializer(required=False)
 
     def validate(self, attrs):
-        email = (attrs.get("user") or {}).get("email", "").strip().lower()
+        user_data = attrs.get("user") or {}
+        email = user_data.get("email", "").strip().lower()
         if email and get_user_model().objects.filter(email__iexact=email).exists():
             raise serializers.ValidationError(
                 {"user": {"email": "Another account already uses this email."}}
             )
+        if user_data.get("password"):
+            _check_staff_password(user_data["password"], email)
         return attrs
 
     @transaction.atomic
     def create(self, validated_data):
         user_data = validated_data.pop("user", None) or {}
         email = user_data.get("email", "").strip().lower()
+        password = user_data.get("password") or None
         user = get_user_model().objects.create_user(
             email=email or f"member-{uuid4().hex[:12]}@brahmamudi.invalid",
-            password=None,
+            password=password,
             phone=user_data.get("phone", ""),
             full_name=" ".join(
                 x for x in (validated_data.get("first_name"), validated_data.get("surname")) if x
             )[:150],
-            must_reset_password=True,
+            must_reset_password=password is None,
+            # staff took the email down in person and handed over the password,
+            # so the member isn't stopped for an emailed code on first login
+            email_verified=password is not None,
         )
         profile = save_with_regno(
             lambda regno: Profile.objects.create(

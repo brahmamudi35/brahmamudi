@@ -27,14 +27,23 @@ function toApiError(status: number, body: unknown): ApiError {
   if (body && typeof body === "object") {
     const b = body as Record<string, unknown>;
     if (typeof b.detail === "string") return { status, detail: b.detail };
-    // DRF field errors: { field: ["msg", ...] } or { non_field_errors: [...] }
+    // DRF field errors: { field: ["msg", ...] } or { non_field_errors: [...] }.
+    // A nested serializer's errors ({ user: { email: [...] } }) are lifted to
+    // their own keys, which is how the forms name those inputs.
     const fields: Record<string, string[]> = {};
     let first = "";
-    for (const [k, v] of Object.entries(b)) {
-      const msgs = Array.isArray(v) ? v.map(String) : [String(v)];
-      fields[k] = msgs;
-      if (!first) first = msgs[0];
-    }
+    const collect = (obj: Record<string, unknown>) => {
+      for (const [k, v] of Object.entries(obj)) {
+        if (v && typeof v === "object" && !Array.isArray(v)) {
+          collect(v as Record<string, unknown>);
+          continue;
+        }
+        const msgs = Array.isArray(v) ? v.map(String) : [String(v)];
+        fields[k] = msgs;
+        if (!first) first = msgs[0];
+      }
+    };
+    collect(b);
     return { status, detail: first || "Request failed.", fields };
   }
   return { status, detail: typeof body === "string" && body ? body : "Request failed." };
