@@ -17,10 +17,7 @@ import {
 
 import { Container } from "@/components/site/container";
 import { Mark } from "@/components/site/logo";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { getStats } from "@/lib/server-api";
 
 const SUBCASTES = [
@@ -61,31 +58,31 @@ const SUBCASTES = [
   },
 ];
 
-/** Illustrative only — not real member data. */
-const PREVIEW_PROFILES = [
-  { initials: "AR", label: "A. R.", age: 29, city: "Hyderabad", role: "Software Engineer" },
-  { initials: "SP", label: "S. P.", age: 26, city: "Bengaluru", role: "Chartered Accountant" },
-  { initials: "VK", label: "V. K.", age: 31, city: "Vijayawada", role: "Doctor" },
-];
-
 export default async function LandingPage() {
   const stats = await getStats();
 
   return (
     <>
       {/* Hero */}
-      <section className="relative overflow-hidden border-b">
-        <div
+      <section className="relative overflow-hidden border-b bg-background">
+        {/* Mirrored so the joined hands sit on the right, clear of the text */}
+        <Image
+          src="/images/hero-wedding-hands.jpg"
+          alt=""
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,var(--accent),transparent)]"
+          fill
+          priority
+          sizes="100vw"
+          className="-scale-x-100 object-cover object-center"
         />
+        {/* Page colour behind the text, fading out towards the hands */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-[0.35] [background-image:radial-gradient(currentColor_1px,transparent_1px)] [background-size:22px_22px] text-primary/15"
+          className="pointer-events-none absolute inset-0 bg-background/80 md:bg-transparent md:bg-gradient-to-r md:from-background md:from-30% md:via-background/70 md:via-45% md:to-transparent md:to-65%"
         />
 
-        <Container className="relative grid gap-12 py-16 md:grid-cols-2 md:items-center md:py-24">
-          <div className="flex flex-col justify-center">
+        <Container className="relative flex min-h-[32rem] items-center py-16 md:min-h-[38rem] md:py-24">
+          <div className="flex max-w-xl flex-col justify-center">
             <span className="inline-flex w-fit items-center gap-2 rounded-full border bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
               <Sparkles className="size-3.5 text-primary" />
               Exclusively for the Vishwabrahmin community
@@ -135,58 +132,7 @@ export default async function LandingPage() {
               </dl>
             )}
           </div>
-
-          <div className="relative flex items-center justify-center">
-            <div
-              aria-hidden
-              className="absolute -inset-6 rounded-[2.5rem] bg-gradient-to-br from-primary/15 via-accent/40 to-transparent blur-2xl"
-            />
-            <div className="relative w-full max-w-md">
-              <div className="relative aspect-[4/3] w-full overflow-hidden rounded-3xl shadow-lg ring-1 ring-foreground/10">
-                <Image
-                  src="/images/hero-wedding-hands.jpg"
-                  alt="Bride and groom holding hands at their wedding, with mehndi and bangles"
-                  fill
-                  priority
-                  sizes="(min-width: 768px) 28rem, 100vw"
-                  className="object-cover"
-                />
-              </div>
-
-              {/* Illustrative preview card — not real member data */}
-              <Card className="absolute -bottom-6 -left-6 w-56 shadow-lg">
-                <CardContent className="flex items-center gap-3 py-1">
-                  <Avatar size="lg">
-                    <AvatarFallback className="bg-accent font-heading text-accent-foreground">
-                      {PREVIEW_PROFILES[0].initials}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <p className="truncate text-sm font-medium">
-                        {PREVIEW_PROFILES[0].label}, {PREVIEW_PROFILES[0].age}
-                      </p>
-                      <ShieldCheck className="size-3.5 shrink-0 text-primary" />
-                    </div>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {PREVIEW_PROFILES[0].role}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {stats && (
-                <Badge className="absolute -top-4 -right-4 h-auto rounded-full px-3 py-1.5 text-xs shadow-lg">
-                  {stats.active_profiles.toLocaleString("en-IN")}+ verified
-                  profiles
-                </Badge>
-              )}
-            </div>
-          </div>
         </Container>
-        <p className="relative pb-6 text-center text-xs text-muted-foreground">
-          Preview card is illustrative — not a real member profile
-        </p>
       </section>
 
       {/* Sub-castes */}
