@@ -23,7 +23,8 @@ export default function AboutPage() {
       <Section title="Who we are">
         <p>
           {SITE.operator} has been helping Vishwabrahmin families find
-          suitable alliances since 2016 through brahmamudi.com. A{" "}
+          suitable alliances since 1980, and today does so online through
+          brahmamudi.com. A{" "}
           <em>mudi</em> is a knot — the marriage knot our families tie with
           trust, not chance — and that is what we try to bring online: full
           bio-data, proper horoscope details and a team that understands what
