@@ -6,6 +6,7 @@ behalf, comp a membership, and look up payments. Everything here is IsAdminUser
 (``is_staff``) — the Django admin is reserved for superusers.
 """
 
+from django.db import transaction
 from django.db.models import Count, Q
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
@@ -19,7 +20,7 @@ from apps.payments.models import PaymentTransaction
 from apps.profiles.models import HoroscopeDocument, Profile, ProfilePhoto
 from apps.reference.enums import ProfileStatus
 
-from . import audit
+from . import audit, sharing
 from .filters import ModerationPaymentFilter, ModerationProfileFilter
 from .models import StaffAction
 from .serializers import (
@@ -153,6 +154,30 @@ class ModerationProfileViewSet(
     @decorators.action(detail=True, methods=["post"])
     def reinstate(self, request, pk=None):
         return self._set(request, status=ProfileStatus.ACTIVE)
+
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
+    @decorators.action(detail=True, methods=["post"])
+    def share(self, request, pk=None):
+        """Send this profile to other members. Body: {"numbers": "6221, 6222"}
+        (commas, spaces or new lines). Reports who it went to, numbers that
+        matched nobody, and members skipped with the reason."""
+        profile = self.get_object()
+        if profile.status != ProfileStatus.ACTIVE:
+            raise ValidationError({"numbers": "Only an active profile can be sent to members."})
+        numbers = sharing.parse_numbers(request.data.get("numbers"))
+        if not numbers:
+            raise ValidationError({"numbers": "Enter at least one profile number."})
+        if len(numbers) > sharing.MAX_RECIPIENTS:
+            raise ValidationError(
+                {"numbers": f"Send to at most {sharing.MAX_RECIPIENTS} members at a time."}
+            )
+        with transaction.atomic():
+            result = sharing.share_profile(profile, numbers)
+            if result.sent:
+                audit.record(request.user, "share_profile", profile,
+                             count=len(result.sent),
+                             to=[p.regno for p in result.sent])
+        return response.Response(result.as_dict())
 
     @extend_schema(request=OpenApiTypes.OBJECT, responses=ModerationSubscriptionSerializer)
     @decorators.action(detail=True, methods=["post"], url_path="grant-plan")

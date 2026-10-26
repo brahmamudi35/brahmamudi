@@ -18,6 +18,7 @@ const LABELS: Record<string, string> = {
   reject_photo: "Deleted photo",
   approve_horoscope: "Approved horoscope",
   reject_horoscope: "Removed horoscope",
+  share_profile: "Sent profile to",
 };
 
 export function describeAction(a: StaffAction): string {
@@ -34,6 +35,9 @@ export function describeAction(a: StaffAction): string {
     return `${base} ${String(d.plan)} (${paid})`;
   }
   if (a.action === "revoke_plan" && d.plan) return `${base} ${String(d.plan)}`;
+  if (a.action === "share_profile" && Array.isArray(d.to)) {
+    return `${base} ${(d.to as string[]).length} member(s): ${(d.to as string[]).join(", ")}`;
+  }
   return base;
 }
 

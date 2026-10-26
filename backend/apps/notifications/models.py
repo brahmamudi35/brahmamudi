@@ -12,6 +12,7 @@ class Notification(models.Model):
         PHOTO_REJECTED = "photo_rejected", "Photo rejected"
         SUBSCRIPTION_ACTIVATED = "subscription_activated", "Membership activated"
         SEARCH_ALERT = "search_alert", "New matches"
+        PROFILE_SHARED = "profile_shared", "Profile suggested by staff"
 
     recipient = models.ForeignKey(
         "profiles.Profile", on_delete=models.CASCADE, related_name="notifications"

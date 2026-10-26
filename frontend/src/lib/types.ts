@@ -442,7 +442,8 @@ export type NotificationKind =
   | "photo_approved"
   | "photo_rejected"
   | "subscription_activated"
-  | "search_alert";
+  | "search_alert"
+  | "profile_shared";
 
 export interface Notification {
   id: number;

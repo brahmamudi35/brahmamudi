@@ -91,6 +91,30 @@ test.describe.serial("staff desk", () => {
     await expect(page.getByText("Edited profile: occupation")).toBeVisible();
   });
 
+  test("send a bride's profile to chosen grooms; they get a notification and email", async ({ page }) => {
+    await openMember(page, "Divya");
+    const box = page.locator('[data-slot="card"]').filter({ hasText: "Send this profile to members" });
+    // Ravi and Kiran are grooms; Sita is another bride; 12345 matches nobody
+    await box.getByLabel("Profile numbers").fill("BM900002, BM900007\nBM900003 12345");
+    await box.getByRole("button", { name: "Send profile" }).click();
+    await expect(box.getByText("Sent to 2:")).toBeVisible();
+    await expect(box.getByText("Ravi Ereddy (BM900002), Kiran Ereddy (BM900007)")).toBeVisible();
+    await expect(box.getByText("12345")).toBeVisible();
+    await expect(box.getByText("Sita Ereddy (BM900003): same gender")).toBeVisible();
+    await expect(box.getByLabel("Profile numbers")).toHaveValue("");
+    await expect(page.getByText("Sent profile to 2 member(s): BM900002, BM900007")).toBeVisible();
+    await expect
+      .poll(() => emailsTo("groom@e2e.test").filter((m) => /suggested for you: Divya/.test(m.subject)).length)
+      .toBe(1);
+
+    await logout(page);
+    await login(page, "groom@e2e.test");
+    await page.goto("/notifications");
+    await page.getByText(/brahmamudi suggests Divya/).first().click();
+    await expect(page).toHaveURL(/\/profiles\/\d+/);
+    await expect(page.getByRole("heading", { name: "Divya" })).toBeVisible();
+  });
+
   test("grant Gold paid by UPI → payment, email, activity; then revoke", async ({ page }) => {
     await openMember(page, "groom@e2e.test");
     const before = emailsTo("groom@e2e.test").filter((m) => /membership is active/.test(m.subject)).length;

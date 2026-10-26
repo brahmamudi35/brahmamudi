@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { ActivityLog } from "@/components/admin/activity-log";
 import { PaymentsTable } from "@/components/admin/payments-table";
 import { PlanManager } from "@/components/admin/plan-manager";
+import { ShareProfile } from "@/components/admin/share-profile";
 import {
   MemberFormSections,
   toMemberBody,
@@ -49,6 +50,9 @@ export default function AdminMemberPage() {
   const [notFound, setNotFound] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
+  const [shares, setShares] = useState(0);
+  // re-read the activity log after a save or a send, without reloading the form
+  const activityKey = useMemo(() => ({ p, shares }), [p, shares]);
 
   const form = useForm<MemberValues>();
 
@@ -231,6 +235,8 @@ export default function AdminMemberPage() {
             </CardContent>
           </Card>
 
+          <ShareProfile profileId={p.id} onSent={() => setShares((n) => n + 1)} />
+
           <Card>
             <CardContent className="pt-6">
               <h2 className="mb-3 font-heading text-lg font-semibold">Payments</h2>
@@ -244,7 +250,7 @@ export default function AdminMemberPage() {
           <Card>
             <CardContent className="pt-6">
               <h2 className="mb-3 font-heading text-lg font-semibold">Activity</h2>
-              <ActivityLog profileId={p.id} refreshKey={p} />
+              <ActivityLog profileId={p.id} refreshKey={activityKey} />
             </CardContent>
           </Card>
         </div>

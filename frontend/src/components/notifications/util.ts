@@ -5,6 +5,7 @@ import {
   Heart,
   ImageOff,
   ImageUp,
+  Send,
   Sparkles,
   X,
 } from "lucide-react";
@@ -30,6 +31,8 @@ export function notificationIcon(kind: NotificationKind) {
       return Sparkles;
     case "search_alert":
       return Sparkles;
+    case "profile_shared":
+      return Send;
     default:
       return Bell;
   }
