@@ -23,9 +23,13 @@ FIRST_REGNO = 6220
 
 
 def next_regno() -> str:
-    """The next free profile number: one past the highest all-digit regno."""
+    """The next free profile number: one past the highest all-digit regno.
+
+    Only numbers up to 5 digits count, so one stray value typed in by hand
+    (a test profile set to 999999) can't push every new member into the
+    millions."""
     highest = (
-        Profile.objects.filter(regno__regex=r"^[0-9]+$")
+        Profile.objects.filter(regno__regex=r"^[0-9]{1,5}$")
         .annotate(n=Cast("regno", BigIntegerField()))
         .aggregate(m=Max("n"))["m"]
     )

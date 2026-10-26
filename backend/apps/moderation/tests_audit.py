@@ -193,6 +193,13 @@ class StaffCreateMemberTests(ApiTestCase):
         entry = StaffAction.objects.get(action="create_profile")
         self.assertEqual(entry.profile_id, p.pk)
 
+    def test_stray_huge_number_does_not_skew_numbering(self):
+        make_profile(regno="999999")
+        make_profile(regno="1000000")
+        resp = self.client.post(self.URL, {"first_name": "Sita", "gender": "F"}, format="json")
+        self.assertEqual(resp.status_code, 201, resp.data)
+        self.assertEqual(Profile.objects.get(pk=resp.data["id"]).regno, "6220")
+
     def test_number_is_automatic_and_email_optional(self):
         for name in ("Sita", "Gita"):
             resp = self.client.post(self.URL, {
