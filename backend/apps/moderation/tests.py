@@ -34,36 +34,45 @@ class ModerationProfileTests(ApiTestCase):
         self.client.force_authenticate(self.staff)
         self.p = make_profile(gender=Gender.FEMALE)
 
-    def test_unverified_filter_and_verify_action(self):
-        listing = self.client.get("/api/v1/moderation/profiles/?filter=unverified")
-        self.assertIn(self.p.pk, [r["id"] for r in listing.data["results"]])
-
-        resp = self.client.post(f"/api/v1/moderation/profiles/{self.p.pk}/verify/")
-        self.assertEqual(resp.status_code, status.HTTP_200_OK)
-        self.p.refresh_from_db()
+    def test_profiles_are_verified_and_verify_suspend_are_gone(self):
         self.assertTrue(self.p.is_verified)
+        for action in ("verify", "unverify", "suspend", "reinstate"):
+            resp = self.client.post(f"/api/v1/moderation/profiles/{self.p.pk}/{action}/")
+            self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND, action)
 
-        # now gone from the unverified queue, still reachable for detail actions
-        listing = self.client.get("/api/v1/moderation/profiles/?filter=unverified")
-        self.assertNotIn(self.p.pk, [r["id"] for r in listing.data["results"]])
-        self.assertEqual(
-            self.client.post(f"/api/v1/moderation/profiles/{self.p.pk}/unverify/").status_code,
-            status.HTTP_200_OK,
+    def test_delete_removes_member_but_keeps_payments_and_log(self):
+        from apps.accounts.models import User
+        from apps.moderation.models import StaffAction
+        from apps.profiles.models import Profile
+
+        user_id = self.p.user_id
+        txn = PaymentTransaction.objects.create(
+            profile=self.p, txnid="T-DEL-1", amount=100, status=PaymentTransaction.Status.SUCCESS
         )
+        resp = self.client.delete(f"/api/v1/moderation/profiles/{self.p.pk}/")
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Profile.objects.filter(pk=self.p.pk).exists())
+        self.assertFalse(User.objects.filter(pk=user_id).exists())
+        txn.refresh_from_db()
+        self.assertIsNone(txn.profile_id)
+        entry = StaffAction.objects.get(action="delete_profile")
+        self.assertEqual(entry.profile_regno, self.p.regno)
+        self.assertEqual(entry.data["name"], self.p.full_name)
 
-    def test_suspend_and_reinstate(self):
-        self.client.post(f"/api/v1/moderation/profiles/{self.p.pk}/suspend/")
-        self.p.refresh_from_db()
-        self.assertEqual(self.p.status, ProfileStatus.SUSPENDED)
-        self.client.post(f"/api/v1/moderation/profiles/{self.p.pk}/reinstate/")
-        self.p.refresh_from_db()
-        self.assertEqual(self.p.status, ProfileStatus.ACTIVE)
+    def test_staff_account_cannot_be_deleted_here(self):
+        staff_profile = make_profile(gender=Gender.MALE, user=make_user(is_staff=True))
+        resp = self.client.delete(f"/api/v1/moderation/profiles/{staff_profile.pk}/")
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_members_cannot_delete(self):
+        self.client.force_authenticate(make_profile(gender=Gender.MALE).user)
+        resp = self.client.delete(f"/api/v1/moderation/profiles/{self.p.pk}/")
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_summary_counts(self):
-        make_profile(gender=Gender.MALE, status=ProfileStatus.SUSPENDED)
         data = self.client.get("/api/v1/moderation/summary/").data
-        self.assertGreaterEqual(data["unverified_profiles"], 1)
-        self.assertEqual(data["suspended_profiles"], 1)
+        self.assertGreaterEqual(data["total_members"], 1)
+        self.assertNotIn("unverified_profiles", data)
 
 
 class ModerationDirectoryFilterTests(ApiTestCase):

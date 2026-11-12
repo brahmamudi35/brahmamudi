@@ -66,7 +66,7 @@ export default function AdminNewMemberPage() {
   const saving = form.formState.isSubmitting;
 
   return (
-    <Container className="max-w-3xl py-6">
+    <Container className="py-6">
       <Button variant="ghost" size="sm" className="mb-4" render={<Link href="/admin" />}>
         <ArrowLeft className="size-4" />
         Admin

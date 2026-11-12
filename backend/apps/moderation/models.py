@@ -3,7 +3,7 @@ from django.db import models
 
 
 class StaffAction(models.Model):
-    """Audit trail of member-desk actions taken by staff (verify, suspend, edit,
+    """Audit trail of member-desk actions taken by staff (edit, delete,
     grant/revoke plans, photo & horoscope moderation). Append-only."""
 
     actor = models.ForeignKey(

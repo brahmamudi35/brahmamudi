@@ -15,7 +15,7 @@ const params = (
 describe("buildMemberQuery", () => {
   it("always carries the preset, limit and offset", () => {
     const p = params(BLANK_FILTERS);
-    expect(p.get("filter")).toBe("unverified");
+    expect(p.get("filter")).toBe("all");
     expect(p.get("limit")).toBe("25");
     expect(p.get("offset")).toBe("0");
   });

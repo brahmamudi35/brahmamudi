@@ -189,7 +189,7 @@ export function PlanManager({
                 onChange={(e) => setReference(e.target.value)}
                 maxLength={40}
                 placeholder="UPI / bank ref"
-                className={`${fieldCls} flex-1`}
+                className={`${fieldCls} min-w-0 flex-1`}
               />
             </div>
           )}

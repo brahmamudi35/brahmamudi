@@ -51,7 +51,7 @@ function member(overrides: Partial<ModerationProfile> = {}): ModerationProfile {
 
 describe("<MemberRow>", () => {
   it("links the name and the Manage button to the member panel", () => {
-    render(<MemberRow p={member()} busy={false} onAct={vi.fn()} />);
+    render(<MemberRow p={member()} busy={false} onDelete={vi.fn()} />);
     const links = screen
       .getAllByRole("link")
       .map((a) => a.getAttribute("href"));
@@ -60,56 +60,35 @@ describe("<MemberRow>", () => {
 
   it("shows a plan badge only for paid members", () => {
     const { rerender } = render(
-      <MemberRow p={member()} busy={false} onAct={vi.fn()} />,
+      <MemberRow p={member()} busy={false} onDelete={vi.fn()} />,
     );
     expect(screen.queryByText("Free")).toBeNull();
     rerender(
-      <MemberRow p={member({ plan: "Gold" })} busy={false} onAct={vi.fn()} />,
+      <MemberRow p={member({ plan: "Gold" })} busy={false} onDelete={vi.fn()} />,
     );
     expect(screen.getByText("Gold")).toBeInTheDocument();
   });
 
-  it("fires verify then, once verified, unverify", async () => {
-    const onAct = vi.fn();
-    const user = userEvent.setup();
-
-    const { rerender } = render(
-      <MemberRow p={member()} busy={false} onAct={onAct} />,
-    );
-    await user.click(screen.getByRole("button", { name: /verify/i }));
-    expect(onAct).toHaveBeenCalledWith(42, "verify");
-
-    rerender(
-      <MemberRow p={member({ is_verified: true })} busy={false} onAct={onAct} />,
-    );
-    await user.click(screen.getByRole("button", { name: /unverify/i }));
-    expect(onAct).not.toHaveBeenCalledWith(42, "unverify"); // asks first
-    await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Unverify" }));
-    expect(onAct).toHaveBeenCalledWith(42, "unverify");
+  it("has no verify or suspend options", () => {
+    render(<MemberRow p={member()} busy={false} onDelete={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: /verify|suspend|reinstate/i })).toBeNull();
   });
 
-  it("toggles suspend / reinstate on status", async () => {
-    const onAct = vi.fn();
+  it("deletes only after the confirmation", async () => {
+    const onDelete = vi.fn();
     const user = userEvent.setup();
+    render(<MemberRow p={member()} busy={false} onDelete={onDelete} />);
 
-    const { rerender } = render(
-      <MemberRow p={member()} busy={false} onAct={onAct} />,
-    );
-    await user.click(screen.getByRole("button", { name: /suspend/i }));
-    expect(onAct).not.toHaveBeenCalled(); // asks first
-    await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Suspend" }));
-    expect(onAct).toHaveBeenCalledWith(42, "suspend");
-
-    rerender(
-      <MemberRow p={member({ status: "suspended" })} busy={false} onAct={onAct} />,
-    );
-    await user.click(screen.getByRole("button", { name: /reinstate/i }));
-    expect(onAct).toHaveBeenCalledWith(42, "reinstate");
+    await user.click(screen.getByRole("button", { name: "Delete profile" }));
+    expect(onDelete).not.toHaveBeenCalled(); // asks first
+    const dialog = await screen.findByRole("alertdialog");
+    expect(dialog).toHaveTextContent("can't be undone");
+    await user.click(within(dialog).getByRole("button", { name: "Delete profile" }));
+    expect(onDelete).toHaveBeenCalledWith(42);
   });
 
-  it("disables the action buttons while busy", () => {
-    render(<MemberRow p={member()} busy onAct={vi.fn()} />);
-    expect(screen.getByRole("button", { name: /verify/i })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /suspend/i })).toBeDisabled();
+  it("disables delete while busy", () => {
+    render(<MemberRow p={member()} busy onDelete={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Delete profile" })).toBeDisabled();
   });
 });

@@ -206,5 +206,5 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function Grid({ children }: { children: ReactNode }) {
-  return <div className="grid gap-4 sm:grid-cols-2">{children}</div>;
+  return <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{children}</div>;
 }

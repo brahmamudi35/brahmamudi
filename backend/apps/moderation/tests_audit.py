@@ -16,16 +16,13 @@ class StaffAuditTrailTests(ApiTestCase):
     def _url(self, suffix=""):
         return f"/api/v1/moderation/profiles/{self.p.pk}/{suffix}"
 
-    def test_status_actions_are_recorded(self):
-        for action in ("verify", "unverify", "suspend", "reinstate"):
-            self.client.post(self._url(f"{action}/"))
-        actions = list(
-            StaffAction.objects.filter(profile=self.p).order_by("id").values_list("action", flat=True)
-        )
-        self.assertEqual(actions, ["verify", "unverify", "suspend", "reinstate"])
-        entry = StaffAction.objects.filter(profile=self.p).first()
+    def test_delete_is_recorded(self):
+        regno = self.p.regno
+        self.client.delete(self._url())
+        entry = StaffAction.objects.get(action="delete_profile")
         self.assertEqual(entry.actor_email, "desk@example.com")
-        self.assertEqual(entry.profile_regno, self.p.regno)
+        self.assertEqual(entry.profile_regno, regno)
+        self.assertIsNone(entry.profile_id)  # the profile is gone; the log stays
 
     def test_edit_records_only_changed_fields(self):
         self.client.patch(self._url(), {"first_name": "Lathika", "surname": self.p.surname},
@@ -69,12 +66,13 @@ class StaffAuditTrailTests(ApiTestCase):
 
     def test_audit_endpoint_filters_by_profile(self):
         other = make_profile(gender=Gender.MALE)
-        self.client.post(self._url("verify/"))
-        self.client.post(f"/api/v1/moderation/profiles/{other.pk}/suspend/")
+        self.client.patch(self._url(), {"first_name": "Lathika"}, format="json")
+        self.client.patch(f"/api/v1/moderation/profiles/{other.pk}/",
+                          {"first_name": "Other"}, format="json")
         resp = self.client.get(f"/api/v1/moderation/audit/?profile={self.p.pk}")
         self.assertEqual(resp.status_code, 200)
         rows = resp.data["results"] if isinstance(resp.data, dict) else resp.data
-        self.assertEqual([r["action"] for r in rows], ["verify"])
+        self.assertEqual([r["action"] for r in rows], ["edit_profile"])
 
     def test_audit_endpoint_is_staff_only(self):
         self.client.force_authenticate(make_user())

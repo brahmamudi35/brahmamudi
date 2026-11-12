@@ -1,8 +1,8 @@
 """Staff moderation & member-desk API.
 
-Profiles go live on creation; staff use these endpoints to award the verified
-badge, suspend abuse, approve member photos, edit a member's bio-data on their
-behalf, comp a membership, and look up payments. Everything here is IsAdminUser
+Profiles go live, verified, on creation; staff use these endpoints to delete
+a member, approve member photos, edit a member's bio-data on their behalf,
+comp a membership, and look up payments. Everything here is IsAdminUser
 (``is_staff``) — the Django admin is reserved for superusers.
 """
 
@@ -13,7 +13,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import decorators, filters, mixins, permissions, response, viewsets
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import NotFound, ValidationError
 
 from apps.memberships.models import MembershipPlan, Subscription
 from apps.payments.models import PaymentTransaction
@@ -49,6 +49,7 @@ class ModerationProfileViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
     mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
     permission_classes = [permissions.IsAdminUser]
@@ -62,10 +63,6 @@ class ModerationProfileViewSet(
     ordering = ["-created_at"]
 
     _PRESETS = {
-        "unverified": lambda qs: qs.filter(is_verified=False).exclude(
-            status=ProfileStatus.SUSPENDED
-        ),
-        "verified": lambda qs: qs.filter(is_verified=True),
         "suspended": lambda qs: qs.filter(status=ProfileStatus.SUSPENDED),
         "all": lambda qs: qs,
     }
@@ -126,34 +123,19 @@ class ModerationProfileViewSet(
             ).data
         )
 
-    def _set(self, request, **fields):
+    def destroy(self, request, *args, **kwargs):
+        """Delete the member for good: their login and profile, with photos,
+        horoscope, interests and notifications. Payment records and the
+        activity log stay (their link to the profile is cleared)."""
         profile = self.get_object()
-        for k, v in fields.items():
-            setattr(profile, k, v)
-        profile.save(update_fields=list(fields))
-        audit.record(request.user, self.action, profile)
-        return response.Response(ModerationProfileSerializer(profile).data)
-
-    @decorators.action(detail=True, methods=["post"])
-    def verify(self, request, pk=None):
-        resp = self._set(request, is_verified=True)
-        from apps.notifications.services import notify
-
-        notify(self.get_object(), "profile_verified",
-               text="Your profile is now verified", url="/dashboard")
-        return resp
-
-    @decorators.action(detail=True, methods=["post"])
-    def unverify(self, request, pk=None):
-        return self._set(request, is_verified=False)
-
-    @decorators.action(detail=True, methods=["post"])
-    def suspend(self, request, pk=None):
-        return self._set(request, status=ProfileStatus.SUSPENDED)
-
-    @decorators.action(detail=True, methods=["post"])
-    def reinstate(self, request, pk=None):
-        return self._set(request, status=ProfileStatus.ACTIVE)
+        user = profile.user
+        if user.is_staff or user.is_superuser:
+            raise ValidationError({"detail": "Staff accounts can't be deleted here."})
+        with transaction.atomic():
+            audit.record(request.user, "delete_profile", profile,
+                         name=profile.full_name, email=user.email or "")
+            user.delete()  # cascades to the profile
+        return response.Response(status=204)
 
     @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
     @decorators.action(detail=True, methods=["post"])
@@ -177,6 +159,43 @@ class ModerationProfileViewSet(
                 audit.record(request.user, "share_profile", profile,
                              count=len(result.sent),
                              to=[p.regno for p in result.sent])
+        return response.Response(result.as_dict())
+
+    @extend_schema(responses=OpenApiTypes.OBJECT)
+    @decorators.action(detail=False, methods=["get"])
+    def lookup(self, request):
+        """One member by profile number (?number=6221; old-site numbers by
+        their leading number), for the Send profiles tab."""
+        number = (request.query_params.get("number") or "").strip()
+        p = sharing.find_profile(number) if number else None
+        if p is None:
+            raise NotFound("No member with that profile number.")
+        return response.Response({
+            "id": p.pk, "regno": p.regno, "name": p.full_name,
+            "gender": p.gender, "status": p.status,
+        })
+
+    @extend_schema(request=OpenApiTypes.OBJECT, responses=OpenApiTypes.OBJECT)
+    @decorators.action(detail=True, methods=["post"])
+    def suggest(self, request, pk=None):
+        """Send other profiles to this member. Body: {"numbers": "6221, 6222"}.
+        Same response shape as ``share``; ``sent`` lists the profiles sent."""
+        member = self.get_object()
+        if member.status != ProfileStatus.ACTIVE:
+            raise ValidationError({"numbers": "Only an active member can be sent profiles."})
+        numbers = sharing.parse_numbers(request.data.get("numbers"))
+        if not numbers:
+            raise ValidationError({"numbers": "Enter at least one profile number."})
+        if len(numbers) > sharing.MAX_SUGGESTIONS:
+            raise ValidationError(
+                {"numbers": f"Send at most {sharing.MAX_SUGGESTIONS} profiles at a time."}
+            )
+        with transaction.atomic():
+            result = sharing.suggest_profiles(member, numbers)
+            if result.sent:
+                audit.record(request.user, "suggest_profiles", member,
+                             count=len(result.sent),
+                             profiles=[p.regno for p in result.sent])
         return response.Response(result.as_dict())
 
     @extend_schema(request=OpenApiTypes.OBJECT, responses=ModerationSubscriptionSerializer)
@@ -366,11 +385,6 @@ class ModerationSummaryView(viewsets.ViewSet):
         )
         return response.Response({
             "total_members": Profile.objects.count(),
-            "unverified_profiles": Profile.objects.filter(is_verified=False)
-            .exclude(status=ProfileStatus.SUSPENDED).count(),
-            "suspended_profiles": Profile.objects.filter(
-                status=ProfileStatus.SUSPENDED
-            ).count(),
             "pending_photos": ProfilePhoto.objects.filter(is_approved=False).count(),
             "pending_horoscopes": HoroscopeDocument.objects.filter(
                 is_approved=False

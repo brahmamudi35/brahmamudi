@@ -266,8 +266,6 @@ export interface InterestQuota {
 
 export interface ModerationSummary {
   total_members: number;
-  unverified_profiles: number;
-  suspended_profiles: number;
   pending_photos: number;
   pending_horoscopes: number;
   profiles_created_today: number;

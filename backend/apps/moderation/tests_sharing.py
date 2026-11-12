@@ -80,3 +80,79 @@ class ShareProfileTests(ApiTestCase):
     def test_staff_only(self):
         self.client.force_authenticate(make_profile(gender=Gender.MALE).user)
         self.assertEqual(self._share("6230").status_code, 403)
+
+
+@mock.patch.object(sharing, "in_background", _run_now)
+class SuggestProfilesTests(ApiTestCase):
+    def setUp(self):
+        super().setUp()
+        self.client.force_authenticate(make_user(is_staff=True))
+        self.groom = make_profile(gender=Gender.MALE, first_name="Ravi", regno="6231",
+                                  user=make_user(email="ravi@example.com"))
+        self.url = f"/api/v1/moderation/profiles/{self.groom.pk}/suggest/"
+
+    def _suggest(self, numbers):
+        with self.captureOnCommitCallbacks(execute=True):
+            return self.client.post(self.url, {"numbers": numbers}, format="json")
+
+    def test_one_notification_per_profile_and_one_email(self):
+        a = make_profile(gender=Gender.FEMALE, first_name="Lakshmi", regno="6230")
+        b = make_profile(gender=Gender.FEMALE, first_name="Sita", regno="6233")
+        resp = self._suggest("6230 6233, 6230")
+        self.assertEqual(resp.status_code, 200, resp.data)
+        self.assertEqual([r["regno"] for r in resp.data["sent"]], ["6230", "6233"])
+        urls = set(Notification.objects.filter(recipient=self.groom, kind="profile_shared")
+                   .values_list("url", flat=True))
+        self.assertEqual(urls, {f"/profiles/{a.pk}", f"/profiles/{b.pk}"})
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["ravi@example.com"])
+        self.assertIn("2 profiles suggested", mail.outbox[0].subject)
+        for p in (a, b):
+            self.assertIn(f"/profiles/{p.pk}", mail.outbox[0].body)
+        entry = StaffAction.objects.get(action="suggest_profiles")
+        self.assertEqual(entry.data, {"count": 2, "profiles": ["6230", "6233"]})
+
+    def test_reports_unknown_and_skipped_numbers(self):
+        make_profile(gender=Gender.MALE, regno="6240")
+        make_profile(gender=Gender.FEMALE, regno="6241", status=ProfileStatus.SUSPENDED)
+        resp = self._suggest("6240 6241 9999 6231")
+        self.assertEqual(resp.data["sent"], [])
+        self.assertEqual(resp.data["not_found"], ["9999"])
+        self.assertEqual(
+            [(s["regno"], s["reason"]) for s in resp.data["skipped"]],
+            [("6240", "same gender"), ("6241", "account is suspended by admin"),
+             ("6231", "this is the same profile")],
+        )
+        self.assertFalse(Notification.objects.exists())
+        self.assertEqual(mail.outbox, [])
+
+    def test_validation(self):
+        self.assertEqual(self._suggest("").status_code, 400)
+        too_many = " ".join(str(7000 + i) for i in range(sharing.MAX_SUGGESTIONS + 1))
+        self.assertEqual(self._suggest(too_many).status_code, 400)
+        self.groom.status = ProfileStatus.HIDDEN
+        self.groom.save()
+        self.assertEqual(self._suggest("6230").status_code, 400)
+
+    def test_staff_only(self):
+        self.client.force_authenticate(make_profile(gender=Gender.FEMALE).user)
+        self.assertEqual(self._suggest("6230").status_code, 403)
+
+
+class LookupTests(ApiTestCase):
+    url = "/api/v1/moderation/profiles/lookup/"
+
+    def test_finds_by_number_and_old_site_number(self):
+        self.client.force_authenticate(make_user(is_staff=True))
+        p = make_profile(gender=Gender.MALE, first_name="Ravi", regno="6231")
+        old = make_profile(gender=Gender.FEMALE, regno="6185-17 CA-S-VIP (R)", legacy_rid=6185)
+        resp = self.client.get(self.url, {"number": "6231"})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual((resp.data["id"], resp.data["gender"]), (p.pk, Gender.MALE))
+        self.assertEqual(self.client.get(self.url, {"number": "6185"}).data["id"], old.pk)
+        self.assertEqual(self.client.get(self.url, {"number": "9999"}).status_code, 404)
+        self.assertEqual(self.client.get(self.url).status_code, 404)
+
+    def test_staff_only(self):
+        self.client.force_authenticate(make_profile(gender=Gender.MALE).user)
+        self.assertEqual(self.client.get(self.url, {"number": "1"}).status_code, 403)

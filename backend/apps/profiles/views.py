@@ -99,13 +99,12 @@ class ProfileViewSet(viewsets.ModelViewSet):
                 data=request.data, context={"request": request}
             )
             serializer.is_valid(raise_exception=True)
-            # New profiles go live immediately; staff verify / moderate after.
+            # New profiles go live, verified, immediately.
             profile = services.save_with_regno(
                 lambda regno: serializer.save(
                     user=request.user,
                     regno=regno,
                     status=ProfileStatus.ACTIVE,
-                    is_verified=False,
                 )
             )
             return response.Response(

@@ -36,6 +36,28 @@ describe("ShareProfile", () => {
     expect(onSent).toHaveBeenCalled();
   });
 
+  it("suggest: posts to /suggest/ and lists the profiles sent", async () => {
+    apiFetch.mockResolvedValueOnce({
+      sent: [
+        { id: 4, regno: "6230", name: "Lakshmi" },
+        { id: 5, regno: "6233", name: "Sita" },
+      ],
+      not_found: [],
+      skipped: [],
+    });
+    render(<ShareProfile profileId={7} direction="suggest" />);
+    expect(screen.getByText("Send profiles to this member")).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText("Profile numbers"), "6230 6233");
+    await userEvent.click(screen.getByRole("button", { name: /Send profiles/ }));
+
+    expect(apiFetch).toHaveBeenCalledWith("/moderation/profiles/7/suggest/", {
+      method: "POST",
+      body: { numbers: "6230 6233" },
+    });
+    expect(await screen.findByText("Sent 2 profiles:")).toBeInTheDocument();
+    expect(screen.getByText("Lakshmi (6230), Sita (6233)")).toBeInTheDocument();
+  });
+
   it("shows the server's message and keeps the numbers on an error", async () => {
     apiFetch.mockRejectedValueOnce({ status: 400, detail: "Enter at least one profile number." });
     render(<ShareProfile profileId={7} />);

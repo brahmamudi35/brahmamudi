@@ -29,7 +29,7 @@ test.describe.serial("staff desk", () => {
     await expect(page.getByRole("button", { name: "Notifications" })).toHaveCount(0);
     await nav.getByRole("link", { name: "Admin" }).click();
     await expect(page).toHaveURL(/\/admin$/);
-    for (const tab of ["Directory", "Payments", "Photos", "Horoscopes", "Activity", "Guided search"]) {
+    for (const tab of ["Directory", "Send profiles", "Payments", "Photos", "Horoscopes", "Activity", "Guided search"]) {
       await page.getByRole("button", { name: tab, exact: true }).click();
     }
   });
@@ -49,36 +49,42 @@ test.describe.serial("staff desk", () => {
     }
     await page.getByRole("button", { name: "Show results" }).click();
     await expect(page.getByRole("button", { name: "Manage" }).first()).toBeVisible();
-    // the row-level Suspend asks first; cancel leaves the member alone
-    await page.getByRole("button", { name: "Suspend" }).first().click();
+    // the row-level Delete asks first; cancel leaves the member alone
+    const rows = await page.getByRole("button", { name: "Manage" }).count();
+    await page.getByRole("button", { name: "Delete profile" }).first().click();
     await page.getByRole("alertdialog").getByRole("button", { name: "Cancel" }).click();
     await expect(page.getByRole("alertdialog")).toBeHidden();
-    await expect(page.getByRole("button", { name: "Reinstate" })).toHaveCount(0); // nobody suspended
+    await expect(page.getByRole("button", { name: "Manage" })).toHaveCount(rows);
+    await expect(page.getByRole("button", { name: /^(Verify|Suspend)$/ })).toHaveCount(0);
     await page.getByRole("button", { name: "Refine" }).click();
     await page.getByRole("button", { name: "Show results" }).click();
     await page.getByRole("button", { name: "Start over" }).click();
   });
 
-  test("verify / unverify (with confirm) and suspend / reinstate", async ({ page }) => {
+  test("no verify or suspend; delete a member after confirming", async ({ page }) => {
     await openMember(page, "Lakshmi");
-    await page.getByRole("button", { name: "Verify", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Unverify" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Delete profile" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^(Verify|Unverify|Suspend|Reinstate)$/ })).toHaveCount(0);
 
-    await page.getByRole("button", { name: "Unverify" }).click();
+    // a throwaway member, so the seeded ones stay for the other specs
+    await page.goto("/admin/members/new");
+    await field(page, "Name").fill("Throwaway");
+    await pickSelect(page, "Gender", /Male|Groom/);
+    await page.getByRole("button", { name: "Create member" }).click();
+    await expect(page).toHaveURL(/\/admin\/members\/\d+$/);
+
+    await page.getByRole("button", { name: "Delete profile" }).click();
     await page.getByRole("alertdialog").getByRole("button", { name: "Cancel" }).click();
     await expect(page.getByRole("alertdialog")).toBeHidden();
-    await expect(page.getByRole("button", { name: "Unverify" })).toBeVisible(); // cancel = no change
-    await page.getByRole("button", { name: "Unverify" }).click();
-    await confirmDialog(page, "Unverify");
-    await expect(page.getByRole("button", { name: "Verify", exact: true })).toBeVisible();
-
-    await page.getByRole("button", { name: "Suspend" }).click();
-    await confirmDialog(page, "Suspend");
-    await expect(page.getByText("Suspended").first()).toBeVisible();
-    await page.getByRole("button", { name: "Reinstate" }).click();
-    await expect(page.getByRole("button", { name: "Suspend" })).toBeVisible();
-    await page.getByRole("button", { name: "Verify", exact: true }).click(); // leave her verified
-    await expect(page.getByRole("button", { name: "Unverify" })).toBeVisible();
+    await expect(page).toHaveURL(/\/admin\/members\/\d+$/); // cancel = no change
+    await page.getByRole("button", { name: "Delete profile" }).click();
+    await confirmDialog(page, "Delete profile");
+    await expect(page).toHaveURL(/\/admin$/);
+    await page.getByRole("button", { name: "Directory", exact: true }).click();
+    await page.getByPlaceholder("Name, reg. no, email, phone, occupation…").fill("Throwaway");
+    await expect(page.getByText("No members match.")).toBeVisible();
+    await page.getByRole("button", { name: "Activity", exact: true }).click();
+    await expect(page.getByText("Deleted profile").first()).toBeVisible();
   });
 
   test("edit a member's bio-data", async ({ page }) => {

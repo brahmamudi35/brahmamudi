@@ -103,7 +103,7 @@ class Profile(models.Model):
         default=enums.ProfileStatus.PENDING, db_index=True,
     )
     photos_visible = models.BooleanField(default=True)
-    is_verified = models.BooleanField(default=False)
+    is_verified = models.BooleanField(default=True)  # every profile is verified
     willing_to_relocate_abroad = models.BooleanField(null=True, blank=True)
     registered_on = models.DateField(null=True, blank=True)
     expires_on = models.DateField(null=True, blank=True)

@@ -57,11 +57,11 @@ class PartnerPreferenceInline(admin.StackedInline):
 class ProfileAdmin(admin.ModelAdmin):
     list_display = (
         "regno", "full_name", "gender", "age_display", "subcaste", "region",
-        "status", "is_verified", "plan_display", "email", "created_at",
+        "status", "plan_display", "email", "created_at",
     )
     list_display_links = ("regno", "full_name")
     list_filter = (
-        "status", "is_verified", "gender", "subcaste", "region",
+        "status", "gender", "subcaste", "region",
         "marital_status", "food_habit", AgeBandFilter, HasPhotoFilter,
         ActivePlanFilter, ProfileCompleteFilter, "profile_for", "created_at",
     )
@@ -72,12 +72,12 @@ class ProfileAdmin(admin.ModelAdmin):
     )
     autocomplete_fields = ("user", "nakshatram", "raasi", "education")
     readonly_fields = ("legacy_rid", "legacy_raw", "created_at", "updated_at")
+    exclude = ("is_verified",)  # always true; no verify step
     inlines = [ProfilePhotoInline, HoroscopeInline, PartnerPreferenceInline]
     list_select_related = ("user", "nakshatram", "raasi", "education")
     date_hierarchy = "created_at"
     list_per_page = 50
-    actions = ("mark_verified", "mark_unverified", "activate", "suspend",
-               "export_csv")
+    actions = ("activate", "export_csv")
 
     @admin.display(description="Name")
     def full_name(self, obj):
@@ -102,28 +102,16 @@ class ProfileAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related("subscriptions__plan")
 
-    @admin.action(description="Mark selected profiles as verified")
-    def mark_verified(self, request, queryset):
-        queryset.update(is_verified=True)
-
-    @admin.action(description="Remove verified badge")
-    def mark_unverified(self, request, queryset):
-        queryset.update(is_verified=False)
-
     @admin.action(description="Set status: active")
     def activate(self, request, queryset):
         queryset.update(status="active")
-
-    @admin.action(description="Set status: suspended")
-    def suspend(self, request, queryset):
-        queryset.update(status="suspended")
 
     @admin.action(description="Export selected to CSV")
     def export_csv(self, request, queryset):
         cols = [
             "regno", "first_name", "surname", "gender", "age", "date_of_birth",
             "marital_status", "subcaste", "gothram", "region", "country_living",
-            "status", "is_verified", "occupation", "email", "phone",
+            "status", "occupation", "email", "phone",
             "contact_phone", "plan", "created_at",
         ]
         resp = HttpResponse(content_type="text/csv")
@@ -136,7 +124,7 @@ class ProfileAdmin(admin.ModelAdmin):
             writer.writerow([
                 p.regno, p.first_name, p.surname, p.get_gender_display(), p.age,
                 p.date_of_birth, p.marital_status, p.subcaste, p.gothram, p.region,
-                p.country_living, p.status, p.is_verified, p.occupation,
+                p.country_living, p.status, p.occupation,
                 p.user.email, p.user.phone, p.contact_phone,
                 self.plan_display(p), p.created_at.isoformat(),
             ])

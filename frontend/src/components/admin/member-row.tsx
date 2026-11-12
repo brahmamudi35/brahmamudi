@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BadgeCheck, Ban, Check, RotateCcw, SlidersHorizontal, X } from "lucide-react";
+import { SlidersHorizontal, Trash2 } from "lucide-react";
 
 import { ConfirmButton } from "@/components/admin/confirm-button";
 import { Badge } from "@/components/ui/badge";
@@ -7,14 +7,40 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ModerationProfile } from "@/lib/types";
 
+/** "Delete profile", behind a confirmation: the member is removed for good. */
+export function DeleteMemberButton({
+  name,
+  disabled,
+  onConfirm,
+}: {
+  name: string;
+  disabled?: boolean;
+  onConfirm: () => Promise<unknown> | unknown;
+}) {
+  return (
+    <ConfirmButton
+      size="sm"
+      variant="outline"
+      disabled={disabled}
+      title="Delete this profile?"
+      description={`${name}'s login and profile are deleted permanently, with their photos, horoscope and interests. Payment records and the activity log are kept. This can't be undone.`}
+      confirmLabel="Delete profile"
+      onConfirm={onConfirm}
+    >
+      <Trash2 className="size-4" />
+      Delete profile
+    </ConfirmButton>
+  );
+}
+
 export function MemberRow({
   p,
   busy,
-  onAct,
+  onDelete,
 }: {
   p: ModerationProfile;
   busy: boolean;
-  onAct: (id: number, action: string) => void;
+  onDelete: (id: number) => Promise<unknown> | unknown;
 }) {
   return (
     <Card>
@@ -27,7 +53,6 @@ export function MemberRow({
             >
               {p.full_name || p.regno}
             </Link>
-            {p.is_verified && <BadgeCheck className="size-4 text-primary" />}
             {p.status === "suspended" && (
               <Badge variant="destructive">Suspended</Badge>
             )}
@@ -60,44 +85,11 @@ export function MemberRow({
             <SlidersHorizontal className="size-4" />
             Manage
           </Button>
-          {p.is_verified ? (
-            <ConfirmButton
-              size="sm"
-              variant="outline"
-              disabled={busy}
-              title="Remove the verified badge?"
-              description={`${p.full_name || p.regno} will no longer show as verified to other members.`}
-              confirmLabel="Unverify"
-              onConfirm={() => onAct(p.id, "unverify")}
-            >
-              <X className="size-4" />
-              Unverify
-            </ConfirmButton>
-          ) : (
-            <Button size="sm" disabled={busy} onClick={() => onAct(p.id, "verify")}>
-              <Check className="size-4" />
-              Verify
-            </Button>
-          )}
-          {p.status === "suspended" ? (
-            <Button size="sm" variant="outline" disabled={busy} onClick={() => onAct(p.id, "reinstate")}>
-              <RotateCcw className="size-4" />
-              Reinstate
-            </Button>
-          ) : (
-            <ConfirmButton
-              size="sm"
-              variant="outline"
-              disabled={busy}
-              title="Suspend this member?"
-              description={`${p.full_name || p.regno}'s profile will be hidden from search and matches until you reinstate it.`}
-              confirmLabel="Suspend"
-              onConfirm={() => onAct(p.id, "suspend")}
-            >
-              <Ban className="size-4" />
-              Suspend
-            </ConfirmButton>
-          )}
+          <DeleteMemberButton
+            name={p.full_name || p.regno}
+            disabled={busy}
+            onConfirm={() => onDelete(p.id)}
+          />
         </div>
       </CardContent>
     </Card>

@@ -9,6 +9,7 @@ import { GuidedSearch, MultiChips } from "@/components/admin/guided-search";
 import { MemberRow } from "@/components/admin/member-row";
 import { ActivityLog } from "@/components/admin/activity-log";
 import { PaymentsTable } from "@/components/admin/payments-table";
+import { SendProfilesTab } from "@/components/admin/send-profiles-tab";
 import {
   BLANK_FILTERS,
   buildMemberQuery,
@@ -28,10 +29,18 @@ import { useReferenceData } from "@/lib/reference";
 import type { ModerationPhoto, ModerationSummary, Paginated } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Tab = "guided" | "directory" | "payments" | "photos" | "horoscopes" | "activity";
+type Tab =
+  | "guided"
+  | "directory"
+  | "send"
+  | "payments"
+  | "photos"
+  | "horoscopes"
+  | "activity";
 const TABS: { id: Tab; label: string }[] = [
   { id: "guided", label: "Guided search" },
   { id: "directory", label: "Directory" },
+  { id: "send", label: "Send profiles" },
   { id: "payments", label: "Payments" },
   { id: "photos", label: "Photos" },
   { id: "horoscopes", label: "Horoscopes" },
@@ -72,24 +81,22 @@ export default function AdminModerationPage() {
       </div>
 
       {summary && (
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <Stat label="Members" value={summary.total_members} />
           <Stat label="Paid members" value={summary.paid_members} />
-          <Stat label="Unverified" value={summary.unverified_profiles} />
           <Stat label="Pending photos" value={summary.pending_photos} />
           <Stat label="Pending horoscopes" value={summary.pending_horoscopes} />
-          <Stat label="Suspended" value={summary.suspended_profiles} />
           <Stat label="New today" value={summary.profiles_created_today} />
         </div>
       )}
 
-      <div className="mt-6 flex gap-2 border-b">
+      <div className="mt-6 flex gap-2 overflow-x-auto border-b">
         {TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
             className={cn(
-              "-mb-px border-b-2 px-3 py-2 text-sm font-medium",
+              "-mb-px shrink-0 border-b-2 px-3 py-2 text-sm font-medium whitespace-nowrap",
               tab === t.id
                 ? "border-primary text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground",
@@ -103,6 +110,7 @@ export default function AdminModerationPage() {
       <div className="mt-6">
         {tab === "guided" && <GuidedSearch onChange={loadSummary} />}
         {tab === "directory" && <DirectoryTab onChange={loadSummary} />}
+        {tab === "send" && <SendProfilesTab />}
         {tab === "payments" && <PaymentsTable />}
         {tab === "photos" && <PhotosTab onChange={loadSummary} />}
         {tab === "horoscopes" && <HoroscopesTab onChange={loadSummary} />}
@@ -137,7 +145,7 @@ function DirectoryTab({ onChange }: { onChange: () => void }) {
     () => buildMemberQuery({ ...f, search: debouncedSearch }, { limit: 25 }),
     [f, debouncedSearch],
   );
-  const { rows, count, busy, loadingMore, act, loadMore } = useMemberList(query);
+  const { rows, count, busy, loadingMore, remove, loadMore } = useMemberList(query);
 
   const set = (k: keyof MemberFilters) => (e: { target: { value: string } }) =>
     setF((s) => ({ ...s, [k]: e.target.value }));
@@ -157,20 +165,9 @@ function DirectoryTab({ onChange }: { onChange: () => void }) {
           />
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-          <select value={f.preset} onChange={set("preset")} className={fieldCls}>
-            <option value="unverified">Queue: unverified</option>
-            <option value="verified">Verified</option>
-            <option value="suspended">Suspended</option>
-            <option value="all">All members</option>
-          </select>
           <Select v={f.gender} on={set("gender")} label="Any gender" opts={enums?.gender} />
           <Select v={f.marital_status} on={set("marital_status")} label="Any marital status" opts={enums?.marital_status} />
           <Select v={f.status} on={set("status")} label="Any status" opts={enums?.profile_status} />
-          <select value={f.is_verified} onChange={set("is_verified")} className={fieldCls}>
-            <option value="">Verified: any</option>
-            <option value="true">Verified only</option>
-            <option value="false">Not verified</option>
-          </select>
           <select value={f.plan} onChange={set("plan")} className={fieldCls}>
             <option value="">Any plan</option>
             <option value="none">No paid plan</option>
@@ -255,7 +252,7 @@ function DirectoryTab({ onChange }: { onChange: () => void }) {
               key={p.id}
               p={p}
               busy={busy === p.id}
-              onAct={(id, a) => act(id, a).then(onChange)}
+              onDelete={(id) => remove(id).then(onChange)}
             />
           ))}
           {rows.length < count && (

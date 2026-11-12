@@ -1,7 +1,8 @@
-"""Staff sending one member's profile to a hand-picked list of other members.
+"""Staff sending one member's profile to a hand-picked list of other members,
+or a hand-picked list of profiles to one member.
 
-Each recipient gets an in-app notification linking to the profile and, when
-they have a real email address, an email. Members can only open active
+Each suggestion is an in-app notification linking to the profile, plus an
+email when the recipient has a real email address. Members can only open active
 profiles of the opposite gender, so anyone else is skipped with a reason.
 """
 
@@ -23,6 +24,7 @@ from apps.reference.enums import ProfileStatus
 logger = logging.getLogger(__name__)
 
 MAX_RECIPIENTS = 100
+MAX_SUGGESTIONS = 10  # profiles sent to one member in one go
 _SPLIT = re.compile(r"[\s,;]+")
 _LEADING_NUMBER = re.compile(r"^(\d+)")
 
@@ -69,30 +71,55 @@ class ShareResult:
         }
 
 
-def share_profile(profile: Profile, numbers: list[str]) -> ShareResult:
+def _resolve(member: Profile, numbers: list[str]) -> ShareResult:
+    """Look up the typed numbers against ``member``: matches that pass the
+    skip rules land in ``sent`` (not yet notified)."""
     result = ShareResult()
     seen_ids = set()
     for number in numbers:
-        recipient = find_profile(number)
-        if recipient is None:
+        other = find_profile(number)
+        if other is None:
             result.not_found.append(number)
             continue
-        if recipient.pk in seen_ids:
+        if other.pk in seen_ids:
             continue
-        seen_ids.add(recipient.pk)
-        reason = _skip_reason(profile, recipient)
+        seen_ids.add(other.pk)
+        reason = _skip_reason(member, other)
         if reason:
-            result.skipped.append((number, recipient, reason))
+            result.skipped.append((number, other, reason))
             continue
-        notify(
-            recipient, "profile_shared", actor=profile,
-            text=f"brahmamudi suggests {profile.first_name or 'a profile'} ({profile.regno}) for you",
-            url=f"/profiles/{profile.pk}", data={"by_staff": True},
-        )
-        result.sent.append(recipient)
+        result.sent.append(other)
+    return result
+
+
+def _notify_suggestion(recipient: Profile, profile: Profile) -> None:
+    notify(
+        recipient, "profile_shared", actor=profile,
+        text=f"brahmamudi suggests {profile.first_name or 'a profile'} ({profile.regno}) for you",
+        url=f"/profiles/{profile.pk}", data={"by_staff": True},
+    )
+
+
+def share_profile(profile: Profile, numbers: list[str]) -> ShareResult:
+    """Send ``profile`` to each member whose number is listed."""
+    result = _resolve(profile, numbers)
+    for recipient in result.sent:
+        _notify_suggestion(recipient, profile)
     if result.sent:
         recipients = list(result.sent)
         transaction.on_commit(lambda: in_background(_email_all, profile, recipients))
+    return result
+
+
+def suggest_profiles(member: Profile, numbers: list[str]) -> ShareResult:
+    """Send each listed profile to ``member``: one notification per profile
+    and a single email listing them all."""
+    result = _resolve(member, numbers)
+    for profile in result.sent:
+        _notify_suggestion(member, profile)
+    if result.sent:
+        profiles = list(result.sent)
+        transaction.on_commit(lambda: in_background(_email_suggestions, member, profiles))
     return result
 
 
@@ -111,13 +138,48 @@ def _skip_reason(profile: Profile, recipient: Profile) -> str:
     return ""
 
 
+def _email_address(member: Profile) -> str:
+    """The member's real email, or "" for none / a placeholder address."""
+    to = (member.user.email or "").strip()
+    return "" if to.endswith("@brahmamudi.invalid") else to
+
+
+def _profile_link(profile: Profile) -> str:
+    return f"{settings.FRONTEND_BASE_URL.rstrip('/')}/profiles/{profile.pk}"
+
+
+def _email_suggestions(member: Profile, profiles: list[Profile]) -> None:
+    """Runs after the request: one email to ``member`` listing every profile."""
+    to = _email_address(member)
+    if not to:
+        return
+    lines = "\n".join(
+        f"- {p.first_name or 'A member'} ({p.regno}): {_profile_link(p)}" for p in profiles
+    )
+    try:
+        send_mail(
+            subject=f"{len(profiles)} profile{'s' if len(profiles) > 1 else ''} suggested for you",
+            message=(
+                f"Namaste {member.first_name or 'there'},\n\n"
+                f"The brahmamudi team thinks these profiles could be a good match for "
+                f"you. Sign in to view them:\n\n{lines}\n\n"
+                f"— brahmamudi"
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[to],
+            fail_silently=False,
+        )
+    except Exception:  # noqa: BLE001 - the notifications are already saved
+        logger.exception("failed to email suggested profiles to %s", member.regno)
+
+
 def _email_all(profile: Profile, recipients: list[Profile]) -> None:
     """Runs after the request: one email per recipient, failures only logged."""
-    link = f"{settings.FRONTEND_BASE_URL.rstrip('/')}/profiles/{profile.pk}"
+    link = _profile_link(profile)
     name = profile.first_name or "A member"
     for r in recipients:
-        to = (r.user.email or "").strip()
-        if not to or to.endswith("@brahmamudi.invalid"):
+        to = _email_address(r)
+        if not to:
             continue
         try:
             send_mail(

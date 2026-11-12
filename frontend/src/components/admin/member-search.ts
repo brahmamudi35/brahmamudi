@@ -6,7 +6,7 @@ import { apiFetch } from "@/lib/api";
 import { handleApiError } from "@/lib/form";
 import type { ModerationProfile, Paginated } from "@/lib/types";
 
-export type Preset = "unverified" | "verified" | "suspended" | "all";
+export type Preset = "suspended" | "all";
 
 export interface MemberFilters {
   preset: Preset;
@@ -17,7 +17,6 @@ export interface MemberFilters {
   education: string[];
   marital_status: string;
   status: string;
-  is_verified: string;
   plan: string;
   has_photo: string;
   age_min: string;
@@ -27,7 +26,7 @@ export interface MemberFilters {
 }
 
 export const BLANK_FILTERS: MemberFilters = {
-  preset: "unverified",
+  preset: "all",
   search: "",
   gender: "",
   subcaste: [],
@@ -35,7 +34,6 @@ export const BLANK_FILTERS: MemberFilters = {
   education: [],
   marital_status: "",
   status: "",
-  is_verified: "",
   plan: "",
   has_photo: "",
   age_min: "",
@@ -45,7 +43,7 @@ export const BLANK_FILTERS: MemberFilters = {
 };
 
 const SINGLE = [
-  "gender", "marital_status", "status", "is_verified", "plan",
+  "gender", "marital_status", "status", "plan",
   "has_photo", "age_min", "age_max", "designation", "work_location",
 ] as const;
 
@@ -123,31 +121,13 @@ export function useMemberList(queryString: string) {
 
   useEffect(() => fetchPage(0), [fetchPage]);
 
-  const act = async (id: number, action: string) => {
+  /** Delete a member for good and drop them from the list. */
+  const remove = async (id: number) => {
     setBusy(id);
     try {
-      await apiFetch(`/moderation/profiles/${id}/${action}/`, { method: "POST" });
-      setRows((prev) =>
-        prev?.map((r) =>
-          r.id !== id
-            ? r
-            : {
-                ...r,
-                is_verified:
-                  action === "verify"
-                    ? true
-                    : action === "unverify"
-                      ? false
-                      : r.is_verified,
-                status:
-                  action === "suspend"
-                    ? "suspended"
-                    : action === "reinstate"
-                      ? "active"
-                      : r.status,
-              },
-        ) ?? null,
-      );
+      await apiFetch(`/moderation/profiles/${id}/`, { method: "DELETE" });
+      setRows((prev) => prev?.filter((r) => r.id !== id) ?? null);
+      setCount((c) => Math.max(0, c - 1));
     } catch (err) {
       handleApiError(err);
     } finally {
@@ -160,7 +140,7 @@ export function useMemberList(queryString: string) {
     count,
     busy,
     loadingMore,
-    act,
+    remove,
     loadMore: () => {
       setLoadingMore(true);
       fetchPage(rows?.length ?? 0);

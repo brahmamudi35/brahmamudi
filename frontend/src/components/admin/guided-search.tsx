@@ -19,7 +19,7 @@ import {
   useMemberList,
 } from "./member-search";
 
-const START: MemberFilters = { ...BLANK_FILTERS, preset: "all" };
+const START: MemberFilters = BLANK_FILTERS;
 
 const STEPS = [
   "who", "age", "subcaste", "region", "marital",
@@ -177,15 +177,6 @@ export function GuidedSearch({ onChange }: { onChange: () => void }) {
           <Question title="Anything else?" hint="Optional final filters.">
             <div className="space-y-2">
               <Chips
-                label="Verification"
-                options={[
-                  { value: "true", label: "Verified only" },
-                  { value: "false", label: "Not verified" },
-                ]}
-                value={f.is_verified}
-                onChange={(v) => set({ is_verified: v })}
-              />
-              <Chips
                 label="Photo"
                 options={[
                   { value: "yes", label: "Has a photo" },
@@ -249,7 +240,7 @@ function Results({
   onChange: () => void;
 }) {
   const query = useMemo(() => buildMemberQuery(filters, { limit: 25 }), [filters]);
-  const { rows, count, busy, loadingMore, act, loadMore } = useMemberList(query);
+  const { rows, count, busy, loadingMore, remove, loadMore } = useMemberList(query);
 
   const summary = [
     filters.search && `"${filters.search}"`,
@@ -265,7 +256,6 @@ function Results({
     filters.marital_status,
     filters.designation && `role: ${filters.designation}`,
     filters.work_location && `at: ${filters.work_location}`,
-    filters.is_verified === "true" ? "verified" : filters.is_verified === "false" ? "unverified" : null,
     filters.has_photo === "yes" ? "with photo" : filters.has_photo === "no" ? "no photo" : filters.has_photo === "pending" ? "photo pending" : null,
     filters.status,
   ].filter(Boolean);
@@ -306,7 +296,7 @@ function Results({
               key={p.id}
               p={p}
               busy={busy === p.id}
-              onAct={(id, a) => act(id, a).then(onChange)}
+              onDelete={(id) => remove(id).then(onChange)}
             />
           ))}
           {rows.length < count && (

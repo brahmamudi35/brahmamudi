@@ -15,7 +15,7 @@ class ProfileCreateTests(ApiTestCase):
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED, resp.data)
         profile = Profile.objects.get(user=user)
         self.assertEqual(profile.status, ProfileStatus.ACTIVE)
-        self.assertFalse(profile.is_verified)
+        self.assertTrue(profile.is_verified)  # every profile is verified on creation
         self.assertEqual(profile.regno, "6220")
 
     def test_profile_numbers_continue_from_the_highest(self):

@@ -19,6 +19,8 @@ const LABELS: Record<string, string> = {
   approve_horoscope: "Approved horoscope",
   reject_horoscope: "Removed horoscope",
   share_profile: "Sent profile to",
+  suggest_profiles: "Sent profiles to member",
+  delete_profile: "Deleted profile",
 };
 
 export function describeAction(a: StaffAction): string {
@@ -37,6 +39,9 @@ export function describeAction(a: StaffAction): string {
   if (a.action === "revoke_plan" && d.plan) return `${base} ${String(d.plan)}`;
   if (a.action === "share_profile" && Array.isArray(d.to)) {
     return `${base} ${(d.to as string[]).length} member(s): ${(d.to as string[]).join(", ")}`;
+  }
+  if (a.action === "suggest_profiles" && Array.isArray(d.profiles)) {
+    return `${base}: ${(d.profiles as string[]).join(", ")}`;
   }
   return base;
 }

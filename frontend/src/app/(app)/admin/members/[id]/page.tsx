@@ -2,19 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import {
-  ArrowLeft,
-  BadgeCheck,
-  Ban,
-  Check,
-  ExternalLink,
-  FileText,
-  RotateCcw,
-  Trash2,
-  X,
-} from "lucide-react";
+import { ArrowLeft, Check, ExternalLink, FileText, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { ActivityLog } from "@/components/admin/activity-log";
@@ -30,6 +20,7 @@ import {
 import { Container } from "@/components/site/container";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmButton } from "@/components/admin/confirm-button";
+import { DeleteMemberButton } from "@/components/admin/member-row";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
@@ -44,6 +35,7 @@ import type {
 
 export default function AdminMemberPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const { user, loading } = useAuth();
   const { data: ref } = useReferenceData();
   const [p, setP] = useState<ModerationProfileDetail | null>(null);
@@ -101,15 +93,14 @@ export default function AdminMemberPage() {
       </Container>
     );
 
-  async function act(action: string) {
-    setBusy(action);
+  async function deleteMember() {
+    setBusy("delete");
     try {
-      await apiFetch(`/moderation/profiles/${id}/${action}/`, { method: "POST" });
-      load();
-      toast.success("Done.");
+      await apiFetch(`/moderation/profiles/${id}/`, { method: "DELETE" });
+      toast.success(`${p!.full_name || p!.regno} deleted.`);
+      router.replace("/admin");
     } catch (err) {
       handleApiError(err);
-    } finally {
       setBusy(null);
     }
   }
@@ -144,7 +135,6 @@ export default function AdminMemberPage() {
             <h1 className="font-heading text-2xl font-semibold">
               {p.full_name || p.regno}
             </h1>
-            {p.is_verified && <BadgeCheck className="size-5 text-primary" />}
             {p.status === "suspended" && <Badge variant="destructive">Suspended</Badge>}
             {p.plan !== "Free" && <Badge variant="secondary">{p.plan}</Badge>}
           </div>
@@ -160,44 +150,11 @@ export default function AdminMemberPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {p.is_verified ? (
-            <ConfirmButton
-              size="sm"
-              variant="outline"
-              disabled={!!busy}
-              title="Remove the verified badge?"
-              description={`${p.full_name || p.regno} will no longer show as verified to other members.`}
-              confirmLabel="Unverify"
-              onConfirm={() => act("unverify")}
-            >
-              <X className="size-4" />
-              Unverify
-            </ConfirmButton>
-          ) : (
-            <Button size="sm" disabled={!!busy} onClick={() => act("verify")}>
-              <Check className="size-4" />
-              Verify
-            </Button>
-          )}
-          {p.status === "suspended" ? (
-            <Button size="sm" variant="outline" disabled={!!busy} onClick={() => act("reinstate")}>
-              <RotateCcw className="size-4" />
-              Reinstate
-            </Button>
-          ) : (
-            <ConfirmButton
-              size="sm"
-              variant="outline"
-              disabled={!!busy}
-              title="Suspend this member?"
-              description={`${p.full_name || p.regno}'s profile will be hidden from search and matches until you reinstate it.`}
-              confirmLabel="Suspend"
-              onConfirm={() => act("suspend")}
-            >
-              <Ban className="size-4" />
-              Suspend
-            </ConfirmButton>
-          )}
+          <DeleteMemberButton
+            name={p.full_name || p.regno}
+            disabled={!!busy}
+            onConfirm={deleteMember}
+          />
           <Button
             size="sm"
             variant="outline"
@@ -218,44 +175,49 @@ export default function AdminMemberPage() {
         <Stat label="Shortlisted by" value={p.activity.shortlisted_by} />
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-        <div className="space-y-6">
-          <Card>
-            <CardContent className="pt-6">
-              <h2 className="mb-4 font-heading text-lg font-semibold">Edit member</h2>
-              <form onSubmit={form.handleSubmit(save)}>
-                {ref && <MemberFormSections form={form} refData={ref} />}
-                <div className="mt-6 flex justify-end">
-                  <Button type="submit" disabled={busy === "save"}>
-                    {busy === "save" && <Spinner />}
-                    Save changes
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+      <div className="mt-6 space-y-6">
+        <Card>
+          <CardContent className="pt-6">
+            <h2 className="mb-4 font-heading text-lg font-semibold">Edit member</h2>
+            <form onSubmit={form.handleSubmit(save)}>
+              {ref && <MemberFormSections form={form} refData={ref} />}
+              <div className="mt-6 flex justify-end">
+                <Button type="submit" disabled={busy === "save"}>
+                  {busy === "save" && <Spinner />}
+                  Save changes
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
 
+        <div className="grid items-start gap-6 lg:grid-cols-2">
           <ShareProfile profileId={p.id} onSent={() => setShares((n) => n + 1)} />
-
-          <Card>
-            <CardContent className="pt-6">
-              <h2 className="mb-3 font-heading text-lg font-semibold">Payments</h2>
-              <PaymentsTable
-                key={p.subscriptions.map((s) => s.id).join(",")}
-                profileId={p.id}
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <h2 className="mb-3 font-heading text-lg font-semibold">Activity</h2>
-              <ActivityLog profileId={p.id} refreshKey={activityKey} />
-            </CardContent>
-          </Card>
+          <ShareProfile
+            profileId={p.id}
+            direction="suggest"
+            onSent={() => setShares((n) => n + 1)}
+          />
         </div>
 
-        <div className="space-y-6">
+        <Card>
+          <CardContent className="pt-6">
+            <h2 className="mb-3 font-heading text-lg font-semibold">Payments</h2>
+            <PaymentsTable
+              key={p.subscriptions.map((s) => s.id).join(",")}
+              profileId={p.id}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <h2 className="mb-3 font-heading text-lg font-semibold">Activity</h2>
+            <ActivityLog profileId={p.id} refreshKey={activityKey} />
+          </CardContent>
+        </Card>
+
+        <div className="grid items-start gap-6 lg:grid-cols-3">
           <PlanManager
             profileId={p.id}
             subscriptions={p.subscriptions}

@@ -23,7 +23,6 @@ class ModerationProfileFilter(filters.FilterSet):
     region = filters.MultipleChoiceFilter(choices=enums.Region.choices)
     marital_status = filters.MultipleChoiceFilter(choices=enums.MaritalStatus.choices)
     status = filters.MultipleChoiceFilter(choices=enums.ProfileStatus.choices)
-    is_verified = filters.BooleanFilter()
 
     age_min = filters.NumberFilter(method="f_age_min")
     age_max = filters.NumberFilter(method="f_age_max")
