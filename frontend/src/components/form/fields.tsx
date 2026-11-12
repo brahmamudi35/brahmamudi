@@ -14,6 +14,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import {
   Select,
   SelectContent,
@@ -53,13 +54,17 @@ export function TextField<T extends FieldValues>({
         {label}
         {required && <span className="text-destructive"> *</span>}
       </FieldLabel>
-      <Input
-        id={name}
-        type={type}
-        aria-invalid={!!msg}
-        {...form.register(name)}
-        {...input}
-      />
+      {type === "password" ? (
+        <PasswordInput id={name} aria-invalid={!!msg} {...form.register(name)} {...input} />
+      ) : (
+        <Input
+          id={name}
+          type={type}
+          aria-invalid={!!msg}
+          {...form.register(name)}
+          {...input}
+        />
+      )}
       {description && !msg && <FieldDescription>{description}</FieldDescription>}
       <FieldError>{msg}</FieldError>
     </Field>

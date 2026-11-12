@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Spinner } from "@/components/ui/spinner";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -91,14 +92,23 @@ export function DeleteAccountCard() {
                 : "Type DELETE to confirm."}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <Input
-            aria-label={hasPassword ? "Password" : "Type DELETE"}
-            type={hasPassword ? "password" : "text"}
-            autoComplete={hasPassword ? "current-password" : "off"}
-            value={secret}
-            onChange={(e) => setSecret(e.target.value)}
-            placeholder={hasPassword ? "Password" : "DELETE"}
-          />
+          {hasPassword ? (
+            <PasswordInput
+              aria-label="Password"
+              autoComplete="current-password"
+              value={secret}
+              onChange={(e) => setSecret(e.target.value)}
+              placeholder="Password"
+            />
+          ) : (
+            <Input
+              aria-label="Type DELETE"
+              autoComplete="off"
+              value={secret}
+              onChange={(e) => setSecret(e.target.value)}
+              placeholder="DELETE"
+            />
+          )}
           {error && <p className="text-sm text-destructive">{error}</p>}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
